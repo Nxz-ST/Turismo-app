@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/errors/friendly_error.dart';
 import '../../../core/services/location_service.dart';
 import '../../places/models/tourist_place_model.dart';
 import '../../places/services/exploration_context_service.dart';
@@ -98,7 +99,7 @@ class _CustomRouteBuilderScreenState extends State<CustomRouteBuilderScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = error.toString();
+        _error = friendlyErrorMessage(error);
       });
     }
   }

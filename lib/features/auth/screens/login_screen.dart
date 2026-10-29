@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/errors/friendly_error.dart';
 import '../../home/screens/home_screen.dart';
 import '../../../core/widgets/presence_lifecycle.dart';
 import '../services/auth_service.dart';
@@ -41,7 +42,14 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No se pudo enviar el enlace: $error')),
+        SnackBar(
+          content: Text(
+            friendlyErrorMessage(
+              error,
+              fallback: 'No pudimos enviar el enlace. Inténtalo nuevamente.',
+            ),
+          ),
+        ),
       );
     }
   }
@@ -100,9 +108,16 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            friendlyErrorMessage(
+              e,
+              fallback: 'No pudimos iniciar sesión. Revisa tus datos.',
+            ),
+          ),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() => isLoading = false);

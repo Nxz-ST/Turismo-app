@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/errors/friendly_error.dart';
 import '../services/admin_review_service.dart';
 
 class CoordinateReviewScreen extends StatefulWidget {
@@ -53,7 +54,7 @@ class _CoordinateReviewScreenState extends State<CoordinateReviewScreen> {
           }
           if (snapshot.hasError) {
             return _CoordinateError(
-              message: snapshot.error.toString(),
+              message: friendlyErrorMessage(snapshot.error),
               onRetry: _reload,
             );
           }
@@ -232,7 +233,7 @@ class _CoordinateReviewSheetState extends State<_CoordinateReviewSheet> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _loading = false);
-      _message(error.toString());
+      _message(friendlyErrorMessage(error));
     }
   }
 
@@ -259,7 +260,7 @@ class _CoordinateReviewSheetState extends State<_CoordinateReviewSheet> {
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);
-      _message(error.toString());
+      _message(friendlyErrorMessage(error));
     }
   }
 

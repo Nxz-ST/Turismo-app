@@ -8,6 +8,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/errors/friendly_error.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/presence_service.dart';
 import '../services/report_place_service.dart';
@@ -340,6 +341,7 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
           double.tryParse(result['confidence']?.toString() ?? '0') ?? 0;
       final accepted = estado == 'candidate';
       final queued = const {
+        'offline_pending',
         'pending',
         'processing_ai',
         'processing_gis',
@@ -350,6 +352,7 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
         'needs_review' => 'Caso enviado a revisión',
         'duplicate' => 'Lugar posiblemente registrado',
         'rejected' => 'La evidencia no fue aceptada',
+        'offline_pending' => 'Aporte guardado sin conexión',
         'pending' ||
         'processing_ai' ||
         'processing_gis' => 'Evidencia enviada a procesamiento',
@@ -368,7 +371,9 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            accepted || queued || estado == 'needs_review'
+            estado == 'offline_pending'
+                ? 'Aporte guardado sin conexión. Se enviará automáticamente cuando recuperes internet.'
+                : accepted || queued || estado == 'needs_review'
                 ? 'Evidencia registrada correctamente.'
                 : title,
           ),
@@ -384,15 +389,21 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
     } catch (e) {
       if (!mounted) return;
 
+      final message = friendlyErrorMessage(
+        e,
+        fallback:
+            'No pudimos guardar el aporte. Tus datos siguen en el formulario para que puedas intentarlo nuevamente.',
+      );
+
       setState(() {
         isSavingReport = false;
         isAnalyzingImage = false;
-        aiMessage = 'Error al procesar la evidencia: $e';
+        aiMessage = message;
       });
 
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error al procesar reporte: $e')));
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -9,8 +10,13 @@ import '../config/app_environment.dart';
 class BackendApiException implements Exception {
   final int? statusCode;
   final String message;
+  final bool isNetworkFailure;
 
-  const BackendApiException(this.message, {this.statusCode});
+  const BackendApiException(
+    this.message, {
+    this.statusCode,
+    this.isNetworkFailure = false,
+  });
 
   @override
   String toString() => message;
@@ -61,43 +67,51 @@ class BackendApiClient {
   }
 
   Future<dynamic> get(String path, {Map<String, dynamic>? query}) async {
-    final response = await _httpClient
-        .get(uri(path, query), headers: _jsonHeaders)
-        .timeout(const Duration(seconds: 45));
-    return _decode(response);
+    return _guard(() async {
+      final response = await _httpClient
+          .get(uri(path, query), headers: _jsonHeaders)
+          .timeout(const Duration(seconds: 45));
+      return _decode(response);
+    });
   }
 
   Future<dynamic> post(String path, {Map<String, dynamic>? body}) async {
-    final response = await _httpClient
-        .post(
-          uri(path),
-          headers: _jsonHeaders,
-          body: jsonEncode(body ?? const <String, dynamic>{}),
-        )
-        .timeout(const Duration(seconds: 45));
-    return _decode(response);
+    return _guard(() async {
+      final response = await _httpClient
+          .post(
+            uri(path),
+            headers: _jsonHeaders,
+            body: jsonEncode(body ?? const <String, dynamic>{}),
+          )
+          .timeout(const Duration(seconds: 45));
+      return _decode(response);
+    });
   }
 
   Future<dynamic> patch(String path, {Map<String, dynamic>? body}) async {
-    final response = await _httpClient
-        .patch(
-          uri(path),
-          headers: _jsonHeaders,
-          body: jsonEncode(body ?? const <String, dynamic>{}),
-        )
-        .timeout(const Duration(seconds: 45));
-    return _decode(response);
+    return _guard(() async {
+      final response = await _httpClient
+          .patch(
+            uri(path),
+            headers: _jsonHeaders,
+            body: jsonEncode(body ?? const <String, dynamic>{}),
+          )
+          .timeout(const Duration(seconds: 45));
+      return _decode(response);
+    });
   }
 
   Future<dynamic> put(String path, {Map<String, dynamic>? body}) async {
-    final response = await _httpClient
-        .put(
-          uri(path),
-          headers: _jsonHeaders,
-          body: jsonEncode(body ?? const <String, dynamic>{}),
-        )
-        .timeout(const Duration(seconds: 45));
-    return _decode(response);
+    return _guard(() async {
+      final response = await _httpClient
+          .put(
+            uri(path),
+            headers: _jsonHeaders,
+            body: jsonEncode(body ?? const <String, dynamic>{}),
+          )
+          .timeout(const Duration(seconds: 45));
+      return _decode(response);
+    });
   }
 
   Future<void> uploadFile({
@@ -105,17 +119,43 @@ class BackendApiClient {
     required File file,
     required Map<String, String> headers,
   }) async {
-    final response = await _httpClient
-        .put(
-          Uri.parse(uploadUrl),
-          headers: headers,
-          body: await file.readAsBytes(),
-        )
-        .timeout(const Duration(minutes: 2));
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw BackendApiException(
-        'No se pudo subir la fotografía.',
-        statusCode: response.statusCode,
+    await _guard(() async {
+      final response = await _httpClient
+          .put(
+            Uri.parse(uploadUrl),
+            headers: headers,
+            body: await file.readAsBytes(),
+          )
+          .timeout(const Duration(minutes: 2));
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw BackendApiException(
+          'No pudimos subir la fotografía. Inténtalo nuevamente.',
+          statusCode: response.statusCode,
+          isNetworkFailure: response.statusCode >= 500,
+        );
+      }
+    });
+  }
+
+  Future<T> _guard<T>(Future<T> Function() request) async {
+    try {
+      return await request();
+    } on BackendApiException {
+      rethrow;
+    } on TimeoutException {
+      throw const BackendApiException(
+        'La conexión está tardando demasiado. Revisa tu internet e inténtalo nuevamente.',
+        isNetworkFailure: true,
+      );
+    } on SocketException {
+      throw const BackendApiException(
+        'No tienes conexión a internet en este momento.',
+        isNetworkFailure: true,
+      );
+    } on http.ClientException {
+      throw const BackendApiException(
+        'No pudimos conectarnos. Revisa tu internet e inténtalo nuevamente.',
+        isNetworkFailure: true,
       );
     }
   }
@@ -131,11 +171,33 @@ class BackendApiClient {
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final detail = payload is Map ? payload['detail'] : null;
+      final message = switch (response.statusCode) {
+        401 => 'Tu sesión expiró. Inicia sesión nuevamente.',
+        403 => 'No tienes permiso para realizar esta acción.',
+        404 => 'No encontramos la información solicitada.',
+        >= 500 =>
+          'El servicio no está disponible por el momento. Inténtalo más tarde.',
+        _ => _safeServerMessage(detail),
+      };
       throw BackendApiException(
-        detail?.toString() ?? 'Error de comunicación con el servidor.',
+        message,
         statusCode: response.statusCode,
+        isNetworkFailure: response.statusCode >= 500,
       );
     }
     return payload;
+  }
+
+  static String _safeServerMessage(dynamic detail) {
+    final message = detail?.toString().trim() ?? '';
+    if (message.isEmpty ||
+        message.length > 220 ||
+        RegExp(
+          r'(exception|traceback|socket|http://|https://|errno|stack|port\s*=)',
+          caseSensitive: false,
+        ).hasMatch(message)) {
+      return 'No pudimos completar la solicitud. Revisa los datos e inténtalo nuevamente.';
+    }
+    return message;
   }
 }

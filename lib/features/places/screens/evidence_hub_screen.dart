@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/errors/friendly_error.dart';
 import '../../../core/services/presence_service.dart';
 import '../../../core/widgets/main_navigation_bar.dart';
 import '../services/report_place_service.dart';
@@ -50,7 +53,7 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = error.toString();
+        _error = friendlyErrorMessage(error);
       });
     }
   }
@@ -533,6 +536,7 @@ class _EvidencePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final photo = item['photo_url']?.toString();
+    final localPhoto = item['photo_local_path']?.toString();
     return InkWell(
       borderRadius: BorderRadius.circular(20),
       onTap: () => Navigator.push(
@@ -553,7 +557,9 @@ class _EvidencePreview extends StatelessWidget {
               child: SizedBox(
                 width: 68,
                 height: 68,
-                child: photo == null
+                child: localPhoto != null && File(localPhoto).existsSync()
+                    ? Image.file(File(localPhoto), fit: BoxFit.cover)
+                    : photo == null
                     ? const ColoredBox(
                         color: AppColors.primarySoft,
                         child: Icon(Icons.landscape, color: AppColors.primary),

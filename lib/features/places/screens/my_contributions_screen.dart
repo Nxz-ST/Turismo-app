@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/errors/friendly_error.dart';
 import '../services/report_place_service.dart';
 import '../widgets/evidence_status_badge.dart';
 import 'register_place_screen.dart';
@@ -59,7 +62,7 @@ class _MyContributionsScreenState extends State<MyContributionsScreen> {
             return _MessageState(
               icon: Icons.cloud_off_outlined,
               title: 'No pudimos cargar tus aportes',
-              message: snapshot.error.toString(),
+              message: friendlyErrorMessage(snapshot.error),
               action: _reload,
             );
           }
@@ -99,6 +102,7 @@ class _ContributionCard extends StatelessWidget {
     final status = item['status']?.toString();
     final info = EvidenceStatusInfo.from(status);
     final photo = item['photo_url']?.toString();
+    final localPhoto = item['photo_local_path']?.toString();
     final category = item['predicted_category']?.toString();
     final score = double.tryParse(item['score']?.toString() ?? '');
     return InkWell(
@@ -122,7 +126,9 @@ class _ContributionCard extends StatelessWidget {
               child: SizedBox(
                 width: 88,
                 height: 88,
-                child: photo == null
+                child: localPhoto != null && File(localPhoto).existsSync()
+                    ? Image.file(File(localPhoto), fit: BoxFit.cover)
+                    : photo == null
                     ? ColoredBox(
                         color: AppColors.primary.withValues(alpha: 0.1),
                         child: const Icon(
@@ -248,6 +254,7 @@ class _UserValidationTimeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = evidence['status']?.toString() ?? 'pending';
+    final offline = status == 'offline_pending';
     final presence = evidence['presence_status']?.toString() ?? 'unavailable';
     final finalReady = [
       'candidate',
@@ -261,7 +268,14 @@ class _UserValidationTimeline extends StatelessWidget {
       'processing_gis',
     ].contains(status);
     final steps = [
-      ('Foto recibida', 'Guardamos tu evidencia de forma segura.', true, false),
+      (
+        offline ? 'Guardado en el dispositivo' : 'Foto recibida',
+        offline
+            ? 'El aporte está protegido y pendiente de conexión.'
+            : 'Guardamos tu evidencia de forma segura.',
+        true,
+        false,
+      ),
       (
         'Ubicación comprobada',
         presence == 'confirmed'
@@ -269,16 +283,18 @@ class _UserValidationTimeline extends StatelessWidget {
             : presence == 'partial'
             ? 'Encontramos una referencia de ubicación parcial.'
             : 'La ubicación se evaluará con las demás señales.',
-        presence == 'confirmed' || presence == 'partial',
+        !offline && (presence == 'confirmed' || presence == 'partial'),
         false,
       ),
       (
         'Verificando el lugar',
         finalReady
             ? 'Comparamos la imagen y el contexto del lugar.'
+            : offline
+            ? 'Comenzaremos cuando recuperes internet.'
             : 'Estamos contrastando la evidencia.',
         finalReady,
-        verificationActive || status == 'pending',
+        verificationActive || status == 'pending' || offline,
       ),
       (
         'Resultado disponible',

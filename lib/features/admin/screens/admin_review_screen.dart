@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/errors/friendly_error.dart';
 import '../../places/widgets/evidence_status_badge.dart';
 import '../../places/widgets/evidence_location_card.dart';
 import '../../places/widgets/geospatial_signal_card.dart';
@@ -90,7 +91,7 @@ class _AdminReviewScreenState extends State<AdminReviewScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      snapshot.error.toString(),
+                      friendlyErrorMessage(snapshot.error),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 18),
@@ -280,7 +281,7 @@ class _ReviewSheetState extends State<_ReviewSheet> {
       setState(() => saving = false);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      ).showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
     }
   }
 

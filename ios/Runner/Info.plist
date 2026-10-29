@@ -49,6 +49,12 @@
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 <string>Necesitamos tu ubicación para mostrar lugares turísticos cercanos.</string>
+	<!-- Temporal para pruebas controladas contra la API HTTP por IP. -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 
 <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 <string>Necesitamos tu ubicación para mejorar las rutas turísticas sugeridas.</string>

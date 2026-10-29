@@ -12,6 +12,12 @@ class EvidenceStatusInfo {
 
   static EvidenceStatusInfo from(String? status) {
     return switch (status) {
+      'offline_pending' => const EvidenceStatusInfo(
+        'Pendiente de envío',
+        Colors.blueGrey,
+        Icons.cloud_upload_outlined,
+        'El aporte está guardado en tu dispositivo y se enviará cuando recuperes internet.',
+      ),
       'pending' => const EvidenceStatusInfo(
         'Pendiente',
         Colors.blueGrey,
