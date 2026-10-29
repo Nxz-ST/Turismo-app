@@ -1,0 +1,6 @@
+{
+  "APP_ENV": "development",
+  "API_BASE_URL": "http://10.0.2.2:8001/api/v1",
+  "SUPABASE_URL": "https://tjhoaynaealbwfacdesx.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_WRU6iUu5i5DuiqiB-MXVpw_9KXMGsWm"
+}
