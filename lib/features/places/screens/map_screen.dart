@@ -994,49 +994,90 @@ class _MapScreenState extends State<MapScreen> {
 
                 if (routeInfo != null)
                   Positioned(
-                    top: 155,
                     left: 20,
-                    right: 20,
+                    right: 84,
+                    bottom: MediaQuery.sizeOf(context).height * .31,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                        horizontal: 10,
+                        vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(18),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: .18),
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.12),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                            color: Colors.black.withValues(alpha: 0.14),
+                            blurRadius: 14,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.route, color: Colors.white),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              routeInfo!,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
+                          Container(
+                            width: 38,
+                            height: 38,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primarySoft,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.route_rounded,
+                              color: AppColors.primary,
+                              size: 21,
                             ),
                           ),
-                          GestureDetector(
-                            onTap: () {
+                          const SizedBox(width: 9),
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Ruta calculada',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: AppColors.textLight,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  routeInfo!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: AppColors.textDark,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Cerrar ruta',
+                            onPressed: () {
                               setState(() {
                                 routeInfo = null;
                                 routePolylines = {};
                               });
                             },
-                            child: const Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 20,
+                            visualDensity: VisualDensity.compact,
+                            constraints: const BoxConstraints.tightFor(
+                              width: 34,
+                              height: 34,
+                            ),
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: AppColors.textLight,
+                              size: 19,
                             ),
                           ),
                         ],
