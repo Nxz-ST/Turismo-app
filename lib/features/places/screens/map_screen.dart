@@ -979,99 +979,6 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                   ),
 
-                if (routeInfo != null)
-                  Positioned(
-                    left: 20,
-                    right: 84,
-                    bottom: MediaQuery.sizeOf(context).height * .31,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: .18),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.14),
-                            blurRadius: 14,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primarySoft,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.route_rounded,
-                              color: AppColors.primary,
-                              size: 21,
-                            ),
-                          ),
-                          const SizedBox(width: 9),
-                          Expanded(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Ruta calculada',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: AppColors.textLight,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                Text(
-                                  routeInfo!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: AppColors.textDark,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: 'Cerrar ruta',
-                            onPressed: () {
-                              setState(() {
-                                routeInfo = null;
-                                routePolylines = {};
-                              });
-                            },
-                            visualDensity: VisualDensity.compact,
-                            constraints: const BoxConstraints.tightFor(
-                              width: 34,
-                              height: 34,
-                            ),
-                            padding: EdgeInsets.zero,
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              color: AppColors.textLight,
-                              size: 19,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
                 _resultsSheet(),
               ],
             ),
@@ -1516,15 +1423,57 @@ class _MapScreenState extends State<MapScreen> {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      Text(
-                        '$_resultCount resultados · desliza para ver todos',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: AppColors.textLight,
-                          fontSize: 10,
+                      if (routeInfo == null)
+                        Text(
+                          '$_resultCount resultados · desliza para ver todos',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.textLight,
+                            fontSize: 10,
+                          ),
+                        )
+                      else
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.route_rounded,
+                              size: 13,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                'Ruta calculada · $routeInfo',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            InkWell(
+                              onTap: () {
+                                setState(() {
+                                  routeInfo = null;
+                                  routePolylines = {};
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(20),
+                              child: const Padding(
+                                padding: EdgeInsets.all(2),
+                                child: Icon(
+                                  Icons.close_rounded,
+                                  size: 14,
+                                  color: AppColors.textLight,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
                     ],
                   ),
                 ),
