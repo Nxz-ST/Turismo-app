@@ -167,6 +167,7 @@ class _MapScreenState extends State<MapScreen> {
   bool isLoading = true;
   bool isLoadingServices = false;
   bool isLoadingRoute = false;
+  int _routeRequestId = 0;
   bool _listMode = false;
   double? _maxDistanceKm;
   String? _categoryFilter;
@@ -175,6 +176,7 @@ class _MapScreenState extends State<MapScreen> {
   String? routeInfo;
 
   List<TouristPlaceModel> nearbyPlaces = [];
+  int? _selectedTouristId;
   List<Map<String, dynamic>> servicePlaces = [];
   String? _selectedServiceId;
 
@@ -291,10 +293,7 @@ class _MapScreenState extends State<MapScreen> {
               snippet: _touristMarkerSnippet(place),
             ),
             onTap: () {
-              setState(() {
-                selectedReport = null;
-              });
-              _scrollCarouselTo(nearbyPlaces.indexOf(place));
+              _selectTouristPlace(place);
             },
           ),
         ),
@@ -395,6 +394,7 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _searchVisibleArea() async {
     final target = _cameraTarget;
     if (target == null || widget.routePlaces != null) return;
+    _routeRequestId++;
     setState(() {
       isLoadingServices = true;
       selectedLayer = 'turisticos';
@@ -433,8 +433,7 @@ class _MapScreenState extends State<MapScreen> {
               snippet: _touristMarkerSnippet(place),
             ),
             onTap: () {
-              setState(() => selectedReport = null);
-              _scrollCarouselTo(nearbyPlaces.indexOf(place));
+              _selectTouristPlace(place);
             },
           ),
         ),
@@ -475,8 +474,10 @@ class _MapScreenState extends State<MapScreen> {
 
   Future<void> _loadNearbyServices(String layer, String type) async {
     try {
+      _routeRequestId++;
       setState(() {
         selectedLayer = layer;
+        _selectedTouristId = null;
         isLoadingServices = true;
         servicePlaces = [];
         serviceMarkers = {};
@@ -553,6 +554,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _showOnlyTouristPlaces() {
+    _routeRequestId++;
     setState(() {
       selectedLayer = 'turisticos';
       selectedReport = null;
@@ -565,6 +567,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _showAllTouristPlaces() {
+    _routeRequestId++;
     setState(() {
       selectedLayer = 'turisticos';
       selectedReport = null;
@@ -576,6 +579,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _showValidatedDiscoveries() {
+    _routeRequestId++;
     setState(() {
       selectedLayer = 'rutaamiga';
       selectedReport = null;
@@ -590,10 +594,12 @@ class _MapScreenState extends State<MapScreen> {
     required double destinationLat,
     required double destinationLng,
   }) async {
+    final requestId = ++_routeRequestId;
     try {
       setState(() {
         isLoadingRoute = true;
         routeInfo = null;
+        routePolylines = {};
       });
 
       final route = await _routesService.getRoute(
@@ -602,6 +608,7 @@ class _MapScreenState extends State<MapScreen> {
         destinationLat: destinationLat,
         destinationLng: destinationLng,
       );
+      if (!mounted || requestId != _routeRequestId) return;
 
       final encodedPolyline = route['polyline']['encodedPolyline'];
       final points = _decodePolyline(encodedPolyline);
@@ -627,6 +634,7 @@ class _MapScreenState extends State<MapScreen> {
     } catch (e) {
       debugPrint('Error dibujando ruta: $e');
 
+      if (!mounted || requestId != _routeRequestId) return;
       setState(() {
         isLoadingRoute = false;
       });
@@ -1339,8 +1347,7 @@ class _MapScreenState extends State<MapScreen> {
               snippet: place.distrito,
             ),
             onTap: () {
-              setState(() => selectedReport = null);
-              _scrollCarouselTo(visiblePlaces.indexOf(place));
+              _selectTouristPlace(place);
             },
           ),
         )
@@ -1457,9 +1464,11 @@ class _MapScreenState extends State<MapScreen> {
                             const SizedBox(width: 4),
                             InkWell(
                               onTap: () {
+                                _routeRequestId++;
                                 setState(() {
                                   routeInfo = null;
                                   routePolylines = {};
+                                  isLoadingRoute = false;
                                 });
                               },
                               borderRadius: BorderRadius.circular(20),
@@ -1702,7 +1711,45 @@ class _MapScreenState extends State<MapScreen> {
     if (moveCamera && location != null) {
       mapController?.animateCamera(CameraUpdate.newLatLngZoom(location, 16));
     }
+    if (location != null) {
+      unawaited(
+        _drawRouteTo(
+          destinationLat: location.latitude,
+          destinationLng: location.longitude,
+        ),
+      );
+    }
     _scrollCarouselTo(index, itemExtent: 334);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_resultsSheetController.isAttached) return;
+      _resultsSheetController.animateTo(
+        .34,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  void _selectTouristPlace(TouristPlaceModel place) {
+    final index = _filteredOfficialPlaces.indexWhere(
+      (item) => item.id == place.id,
+    );
+    setState(() {
+      _listMode = false;
+      selectedReport = null;
+      _selectedServiceId = null;
+      _selectedTouristId = place.id;
+    });
+    mapController?.animateCamera(
+      CameraUpdate.newLatLngZoom(LatLng(place.latitud, place.longitud), 15),
+    );
+    _scrollCarouselTo(index);
+    unawaited(
+      _drawRouteTo(
+        destinationLat: place.latitud,
+        destinationLng: place.longitud,
+      ),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_resultsSheetController.isAttached) return;
       _resultsSheetController.animateTo(
@@ -1725,21 +1772,13 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _focusOfficialPlace(TouristPlaceModel place) {
-    final index = _filteredOfficialPlaces.indexWhere(
-      (item) => item.id == place.id,
-    );
     setState(() {
-      _listMode = false;
-      selectedReport = null;
       if (selectedLayer != 'turisticos' && selectedLayer != 'oficiales') {
         selectedLayer = 'oficiales';
         markers = {...touristMarkers};
       }
     });
-    mapController?.animateCamera(
-      CameraUpdate.newLatLngZoom(LatLng(place.latitud, place.longitud), 15),
-    );
-    _scrollCarouselTo(index);
+    _selectTouristPlace(place);
   }
 
   Widget _officialResultTile(TouristPlaceModel place) {
@@ -2364,28 +2403,20 @@ class _MapScreenState extends State<MapScreen> {
     Future<String?> photoFuture,
   ) {
     final distance = _distanceToTouristPlace(place);
+    final isSelected = place.id == _selectedTouristId;
 
     return GestureDetector(
-      onTap: () {
-        _drawRouteTo(
-          destinationLat: place.latitud,
-          destinationLng: place.longitud,
-        );
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                TouristPlaceDetailScreen(place: place, distance: distance),
-          ),
-        );
-      },
+      onTap: () => _selectTouristPlace(place),
       child: Container(
         width: 310,
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            width: 2,
+          ),
         ),
         child: Row(
           children: [
@@ -2430,15 +2461,45 @@ class _MapScreenState extends State<MapScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    place.nombre,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textDark,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          place.nombre,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Ver información completa',
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => TouristPlaceDetailScreen(
+                              place: place,
+                              distance: distance,
+                            ),
+                          ),
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        constraints: const BoxConstraints.tightFor(
+                          width: 30,
+                          height: 30,
+                        ),
+                        padding: EdgeInsets.zero,
+                        icon: const Icon(
+                          Icons.arrow_outward_rounded,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
                   ),
 
                   const SizedBox(height: 6),
@@ -2500,19 +2561,7 @@ class _MapScreenState extends State<MapScreen> {
     final isSelected = place['id']?.toString() == _selectedServiceId;
 
     return GestureDetector(
-      onTap: () {
-        setState(() => _selectedServiceId = place['id']?.toString());
-        final latLng = _serviceLatLng(place);
-
-        if (latLng != null) {
-          mapController?.animateCamera(CameraUpdate.newLatLngZoom(latLng, 16));
-
-          _drawRouteTo(
-            destinationLat: latLng.latitude,
-            destinationLng: latLng.longitude,
-          );
-        }
-      },
+      onTap: () => _focusServicePlace(place),
       child: Container(
         width: 320,
         padding: const EdgeInsets.all(16),
