@@ -227,6 +227,43 @@ class ReportPlaceService {
     return queue.map((item) => Map<String, dynamic>.from(item)).toList();
   }
 
+  Future<int> retryPending(String clientEvidenceId) async {
+    final queue = await _readQueue();
+    var found = false;
+    final updated = queue.map((item) {
+      if (item['client_evidence_id']?.toString() != clientEvidenceId) {
+        return item;
+      }
+      found = true;
+      return <String, dynamic>{
+        ...item,
+        'status': 'offline_pending',
+        'sync_status': 'pending',
+        'decision_reason':
+            'Aporte pendiente de conexión. Intentaremos enviarlo nuevamente.',
+      }..remove('last_sync_error');
+    }).toList();
+    if (!found) return 0;
+    await _saveQueue(updated);
+    return syncPending();
+  }
+
+  Future<void> deletePending(String clientEvidenceId) async {
+    final queue = await _readQueue();
+    String? imagePath;
+    queue.removeWhere((item) {
+      final matches =
+          item['client_evidence_id']?.toString() == clientEvidenceId;
+      if (matches) imagePath = item['photo_local_path']?.toString();
+      return matches;
+    });
+    await _saveQueue(queue);
+    if (imagePath != null) {
+      final image = File(imagePath!);
+      if (await image.exists()) await image.delete();
+    }
+  }
+
   Future<List<Map<String, dynamic>>> obtenerReportesCercanos({
     required double latitud,
     required double longitud,

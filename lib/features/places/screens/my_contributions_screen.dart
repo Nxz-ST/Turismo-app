@@ -83,7 +83,8 @@ class _MyContributionsScreenState extends State<MyContributionsScreen> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
               itemCount: items.length,
               separatorBuilder: (_, __) => const SizedBox(height: 14),
-              itemBuilder: (_, index) => _ContributionCard(item: items[index]),
+              itemBuilder: (_, index) =>
+                  _ContributionCard(item: items[index], onChanged: _reload),
             ),
           );
         },
@@ -93,9 +94,10 @@ class _MyContributionsScreenState extends State<MyContributionsScreen> {
 }
 
 class _ContributionCard extends StatelessWidget {
-  const _ContributionCard({required this.item});
+  const _ContributionCard({required this.item, required this.onChanged});
 
   final Map<String, dynamic> item;
+  final Future<void> Function() onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -107,12 +109,15 @@ class _ContributionCard extends StatelessWidget {
     final score = double.tryParse(item['score']?.toString() ?? '');
     return InkWell(
       borderRadius: BorderRadius.circular(22),
-      onTap: () => showModalBottomSheet<void>(
-        context: context,
-        showDragHandle: true,
-        isScrollControlled: true,
-        builder: (_) => _ContributionDetail(item: item),
-      ),
+      onTap: () async {
+        final changed = await showModalBottomSheet<bool>(
+          context: context,
+          showDragHandle: true,
+          isScrollControlled: true,
+          builder: (_) => _ContributionDetail(item: item),
+        );
+        if (changed == true) await onChanged();
+      },
       child: Ink(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
@@ -179,14 +184,81 @@ class _ContributionCard extends StatelessWidget {
   }
 }
 
-class _ContributionDetail extends StatelessWidget {
+class _ContributionDetail extends StatefulWidget {
   const _ContributionDetail({required this.item});
 
   final Map<String, dynamic> item;
 
   @override
+  State<_ContributionDetail> createState() => _ContributionDetailState();
+}
+
+class _ContributionDetailState extends State<_ContributionDetail> {
+  final ReportPlaceService _service = ReportPlaceService();
+  bool _working = false;
+
+  Future<void> _retry() async {
+    setState(() => _working = true);
+    try {
+      final count = await _service.retryPending(
+        widget.item['client_evidence_id'].toString(),
+      );
+      if (!mounted) return;
+      if (count > 0) {
+        Navigator.pop(context, true);
+        return;
+      }
+      setState(() => _working = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'El aporte sigue guardado. Lo enviaremos cuando tengas conexión.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _working = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
+    }
+  }
+
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Eliminar aporte pendiente'),
+        content: const Text(
+          'Se eliminará la fotografía guardada en este dispositivo. Esta acción no se puede deshacer.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    setState(() => _working = true);
+    await _service.deletePending(widget.item['client_evidence_id'].toString());
+    if (mounted) Navigator.pop(context, true);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final info = EvidenceStatusInfo.from(item['status']?.toString());
+    final item = widget.item;
+    final status = item['status']?.toString();
+    final isLocal =
+        status == 'offline_pending' ||
+        (status == 'failed' && item['photo_local_path'] != null);
+    final info = EvidenceStatusInfo.from(status);
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
@@ -204,6 +276,34 @@ class _ContributionDetail extends StatelessWidget {
             EvidenceStatusBadge(status: item['status']?.toString()),
             const SizedBox(height: 16),
             Text(info.description, style: const TextStyle(height: 1.5)),
+            if (isLocal) ...[
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _working ? null : _delete,
+                      icon: const Icon(Icons.delete_outline),
+                      label: const Text('Eliminar'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _working ? null : _retry,
+                      icon: _working
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.sync),
+                      label: const Text('Reintentar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 18),
             _UserValidationTimeline(evidence: item),
             if (item['decision_reason'] != null) ...[
