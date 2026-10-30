@@ -1024,66 +1024,70 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Widget _layerBar({EdgeInsets padding = EdgeInsets.zero}) => SizedBox(
-    height: 42,
-    child: ListView(
-      padding: padding,
-      scrollDirection: Axis.horizontal,
-      children: [
-        _layerChip(
-          'Todos',
-          'turisticos',
-          Icons.map_outlined,
-          onTap: _showAllTouristPlaces,
-        ),
-        _layerChip(
-          'Oficiales',
-          'oficiales',
-          Icons.verified_outlined,
-          onTap: () {
-            _showOnlyTouristPlaces();
-            setState(() => selectedLayer = 'oficiales');
-          },
-        ),
-        _layerChip(
-          'RutaAmiga',
-          'rutaamiga',
-          Icons.explore_outlined,
-          onTap: _showValidatedDiscoveries,
-        ),
-        _layerChip(
-          'Comer',
-          'restaurant',
-          Icons.restaurant_outlined,
-          onTap: () => _loadNearbyServices('restaurant', 'restaurant'),
-        ),
-        _layerChip(
-          'Dormir',
-          'lodging',
-          Icons.bed_outlined,
-          onTap: () => _loadNearbyServices('lodging', 'lodging'),
-        ),
-        _layerChip(
-          'Farmacia',
-          'pharmacy',
-          Icons.local_pharmacy_outlined,
-          onTap: () => _loadNearbyServices('pharmacy', 'pharmacy'),
-        ),
-        _layerChip(
-          'Combustible',
-          'gas_station',
-          Icons.local_gas_station_outlined,
-          onTap: () => _loadNearbyServices('gas_station', 'gas_station'),
-        ),
-        _layerChip(
-          'Cajeros',
-          'atm',
-          Icons.atm_outlined,
-          onTap: () => _loadNearbyServices('atm', 'atm'),
-        ),
-      ],
-    ),
-  );
+  Widget _layerBar({EdgeInsets padding = EdgeInsets.zero}) {
+    final scaledTextHeight = MediaQuery.textScalerOf(context).scale(13);
+    final barHeight = (scaledTextHeight + 34).clamp(48.0, 64.0);
+    return SizedBox(
+      height: barHeight,
+      child: ListView(
+        padding: padding.add(const EdgeInsets.symmetric(vertical: 3)),
+        scrollDirection: Axis.horizontal,
+        children: [
+          _layerChip(
+            'Todos',
+            'turisticos',
+            Icons.map_outlined,
+            onTap: _showAllTouristPlaces,
+          ),
+          _layerChip(
+            'Oficiales',
+            'oficiales',
+            Icons.verified_outlined,
+            onTap: () {
+              _showOnlyTouristPlaces();
+              setState(() => selectedLayer = 'oficiales');
+            },
+          ),
+          _layerChip(
+            'RutaAmiga',
+            'rutaamiga',
+            Icons.explore_outlined,
+            onTap: _showValidatedDiscoveries,
+          ),
+          _layerChip(
+            'Comer',
+            'restaurant',
+            Icons.restaurant_outlined,
+            onTap: () => _loadNearbyServices('restaurant', 'restaurant'),
+          ),
+          _layerChip(
+            'Dormir',
+            'lodging',
+            Icons.bed_outlined,
+            onTap: () => _loadNearbyServices('lodging', 'lodging'),
+          ),
+          _layerChip(
+            'Farmacia',
+            'pharmacy',
+            Icons.local_pharmacy_outlined,
+            onTap: () => _loadNearbyServices('pharmacy', 'pharmacy'),
+          ),
+          _layerChip(
+            'Combustible',
+            'gas_station',
+            Icons.local_gas_station_outlined,
+            onTap: () => _loadNearbyServices('gas_station', 'gas_station'),
+          ),
+          _layerChip(
+            'Cajeros',
+            'atm',
+            Icons.atm_outlined,
+            onTap: () => _loadNearbyServices('atm', 'atm'),
+          ),
+        ],
+      ),
+    );
+  }
 
   List<TouristPlaceModel> get _filteredOfficialPlaces {
     return nearbyPlaces.where((place) {
@@ -1148,106 +1152,114 @@ class _MapScreenState extends State<MapScreen> {
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) => Container(
-          padding: EdgeInsets.fromLTRB(
-            22,
-            12,
-            22,
-            20 + MediaQuery.paddingOf(context).bottom,
-          ),
           decoration: const BoxDecoration(
             color: AppColors.background,
             borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 38,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFCBD5D0),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                ),
+          child: SafeArea(
+            top: false,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * .85,
               ),
-              const SizedBox(height: 18),
-              const Text(
-                '¿Qué quieres descubrir?',
-                style: TextStyle(
-                  color: AppColors.textDark,
-                  fontSize: 21,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'Distancia desde tu punto de exploración',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (final option in <double?>[null, 5, 15, 30])
-                    ChoiceChip(
-                      label: Text(
-                        option == null ? 'Sin límite' : '${option.toInt()} km',
-                      ),
-                      selected: distance == option,
-                      onSelected: (_) => setSheetState(() => distance = option),
-                    ),
-                ],
-              ),
-              if (categories.length > 1) ...[
-                const SizedBox(height: 18),
-                const Text(
-                  'Tipo de lugar',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 8),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 130),
-                  child: SingleChildScrollView(
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Todos'),
-                          selected: category == null,
-                          onSelected: (_) =>
-                              setSheetState(() => category = null),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(22, 12, 22, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 38,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFCBD5D0),
+                          borderRadius: BorderRadius.circular(99),
                         ),
-                        for (final option in categories)
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    const Text(
+                      '¿Qué quieres descubrir?',
+                      style: TextStyle(
+                        color: AppColors.textDark,
+                        fontSize: 21,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    const Text(
+                      'Distancia desde tu punto de exploración',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final option in <double?>[null, 5, 15, 30])
                           ChoiceChip(
-                            label: Text(option),
-                            selected: category == option,
+                            label: Text(
+                              option == null
+                                  ? 'Sin límite'
+                                  : '${option.toInt()} km',
+                            ),
+                            selected: distance == option,
                             onSelected: (_) =>
-                                setSheetState(() => category = option),
+                                setSheetState(() => distance = option),
                           ),
                       ],
                     ),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 22),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    setState(() {
-                      _maxDistanceKm = distance;
-                      _categoryFilter = category;
-                      _applyTouristFiltersToMap();
-                    });
-                    Navigator.pop(sheetContext);
-                  },
-                  child: const Text('Ver resultados'),
+                    if (categories.length > 1) ...[
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Tipo de lugar',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 8),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxHeight: 130),
+                        child: SingleChildScrollView(
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              ChoiceChip(
+                                label: const Text('Todos'),
+                                selected: category == null,
+                                onSelected: (_) =>
+                                    setSheetState(() => category = null),
+                              ),
+                              for (final option in categories)
+                                ChoiceChip(
+                                  label: Text(option),
+                                  selected: category == option,
+                                  onSelected: (_) =>
+                                      setSheetState(() => category = option),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 22),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () {
+                          setState(() {
+                            _maxDistanceKm = distance;
+                            _categoryFilter = category;
+                            _applyTouristFiltersToMap();
+                          });
+                          Navigator.pop(sheetContext);
+                        },
+                        child: const Text('Ver resultados'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -1345,6 +1357,8 @@ class _MapScreenState extends State<MapScreen> {
                     children: [
                       Text(
                         _resultsTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.textDark,
                           fontSize: 16,
@@ -1353,6 +1367,8 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                       Text(
                         '$_resultCount resultados · desliza para ver todos',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.textLight,
                           fontSize: 10,
@@ -1363,6 +1379,11 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 IconButton(
                   tooltip: 'Filtrar resultados',
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 40,
+                    height: 40,
+                  ),
                   onPressed: _showExploreFilters,
                   icon: Badge(
                     isLabelVisible:
@@ -1372,6 +1393,11 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 IconButton(
                   tooltip: 'Crear una ruta',
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 40,
+                    height: 40,
+                  ),
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -1382,6 +1408,11 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 IconButton(
                   tooltip: 'Ver lista completa',
+                  visualDensity: VisualDensity.compact,
+                  constraints: const BoxConstraints.tightFor(
+                    width: 40,
+                    height: 40,
+                  ),
                   onPressed: () => setState(() => _listMode = true),
                   icon: const Icon(Icons.view_list_rounded),
                 ),
@@ -1453,6 +1484,8 @@ class _MapScreenState extends State<MapScreen> {
                   children: [
                     const Text(
                       'Explorar',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: AppColors.textDark,
                         fontSize: 25,
@@ -1461,6 +1494,8 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                     Text(
                       '${ExplorationContextService.instance.area?.name ?? 'Cerca de ti'} · $_resultCount resultados',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: AppColors.textLight,
                         fontSize: 11,
@@ -1471,11 +1506,21 @@ class _MapScreenState extends State<MapScreen> {
               ),
               IconButton(
                 tooltip: 'Buscar',
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints.tightFor(
+                  width: 40,
+                  height: 40,
+                ),
                 onPressed: _searchOfficialPlaces,
                 icon: const Icon(Icons.search_rounded),
               ),
               IconButton(
                 tooltip: 'Filtrar',
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints.tightFor(
+                  width: 40,
+                  height: 40,
+                ),
                 onPressed: _showExploreFilters,
                 icon: Badge(
                   isLabelVisible:
@@ -1485,6 +1530,11 @@ class _MapScreenState extends State<MapScreen> {
               ),
               IconButton(
                 tooltip: 'Crear ruta',
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints.tightFor(
+                  width: 40,
+                  height: 40,
+                ),
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -1495,6 +1545,11 @@ class _MapScreenState extends State<MapScreen> {
               ),
               IconButton.filled(
                 tooltip: 'Ver mapa',
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints.tightFor(
+                  width: 40,
+                  height: 40,
+                ),
                 onPressed: () => setState(() => _listMode = false),
                 icon: const Icon(Icons.map_outlined),
               ),
