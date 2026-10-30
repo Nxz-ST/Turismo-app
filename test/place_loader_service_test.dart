@@ -20,8 +20,8 @@ void main() {
     expect(places.every((place) => place.id != 0), isTrue);
 
     final cayesh = places.singleWhere((place) => place.codigo == 11506);
-    expect(cayesh.latitud, closeTo(-9.439077, 0.000001));
-    expect(cayesh.longitud, closeTo(-77.302956, 0.000001));
+    expect(cayesh.latitud, closeTo(-9.463956834814669, 0.000001));
+    expect(cayesh.longitud, closeTo(-77.31155206387554, 0.000001));
     expect(cayesh.altitud, 5721);
     expect(cayesh.coordinateQuality, 'verified_correction');
     expect(
@@ -35,18 +35,29 @@ void main() {
     );
   });
 
-  test('marca coordenadas masivamente repetidas como referenciales', () async {
-    final places = await PlaceLoaderService.loadPlaces();
-    final approximate = places
-        .where((place) => place.coordinateQuality == 'approximate_cluster')
-        .toList();
+  test(
+    'el catálogo auditado elimina coordenadas masivamente repetidas',
+    () async {
+      final places = await PlaceLoaderService.loadPlaces();
+      final approximate = places
+          .where((place) => place.coordinateQuality == 'approximate_cluster')
+          .toList();
 
-    expect(approximate.length, greaterThanOrEqualTo(20));
-    expect(
-      approximate.any((place) => place.nombre == 'Cascada La Encantada'),
-      isTrue,
-    );
-  });
+      expect(places.length, 530);
+      expect(approximate, isEmpty);
+      expect(
+        places.every(
+          (place) => place.coordinateQuality == 'verified_correction',
+        ),
+        isTrue,
+      );
+
+      final timon = places.singleWhere((place) => place.codigo == 1754);
+      expect(timon.latitud, closeTo(-7.449139960880176, 0.000001));
+      expect(timon.longitud, closeTo(-76.90192676225385, 0.000001));
+      expect(timon.altitud, 320);
+    },
+  );
 
   test('usa el acceso aprobado solo para navegación', () {
     final place = TouristPlaceModel.fromSupabase({
