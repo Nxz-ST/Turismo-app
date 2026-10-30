@@ -156,6 +156,21 @@ class _MapScreenState extends State<MapScreen> {
   static const _serviceClusterId = ClusterManagerId('nearby_services');
   late final Set<ClusterManager> _clusterManagers;
   final ScrollController _carouselController = ScrollController();
+  final DraggableScrollableController _resultsSheetController =
+      DraggableScrollableController();
+  final Map<String, GlobalKey> _layerKeys = {
+    for (final layer in const [
+      'turisticos',
+      'oficiales',
+      'rutaamiga',
+      'restaurant',
+      'lodging',
+      'pharmacy',
+      'gas_station',
+      'atm',
+    ])
+      layer: GlobalKey(),
+  };
 
   LatLng currentPosition = const LatLng(-12.0464, -77.0428);
   LatLng? _cameraTarget;
@@ -174,6 +189,7 @@ class _MapScreenState extends State<MapScreen> {
 
   List<TouristPlaceModel> nearbyPlaces = [];
   List<Map<String, dynamic>> servicePlaces = [];
+  String? _selectedServiceId;
 
   List<Map<String, dynamic>> reportedPlaces = [];
   Map<String, dynamic>? selectedReport;
@@ -212,6 +228,7 @@ class _MapScreenState extends State<MapScreen> {
   @override
   void dispose() {
     _carouselController.dispose();
+    _resultsSheetController.dispose();
     super.dispose();
   }
 
@@ -489,6 +506,7 @@ class _MapScreenState extends State<MapScreen> {
       );
 
       servicePlaces = places;
+      _selectedServiceId = null;
 
       serviceMarkers = places.map((place) {
         final location = place['location'];
@@ -504,6 +522,7 @@ class _MapScreenState extends State<MapScreen> {
             title: place['displayName']?['text'] ?? 'Servicio cercano',
             snippet: place['formattedAddress'] ?? '',
           ),
+          onTap: () => _focusServicePlace(place, moveCamera: false),
         );
       }).toSet();
 
@@ -817,101 +836,108 @@ class _MapScreenState extends State<MapScreen> {
                 Positioned(
                   top: 55,
                   left: widget.initialFocusPlace == null ? 20 : 76,
-                  right: 76,
+                  right: 20,
                   child: Column(
                     children: [
-                      InkWell(
-                        onTap: widget.routePlaces == null
-                            ? () async {
-                                if (await showExplorationAreaPicker(context) &&
-                                    mounted) {
-                                  setState(() => isLoading = true);
-                                  await _loadMapData();
-                                  final area =
-                                      ExplorationContextService.instance.area;
-                                  if (area != null) {
-                                    await mapController?.animateCamera(
-                                      CameraUpdate.newLatLngZoom(
-                                        LatLng(area.latitude, area.longitude),
-                                        area.scope == 'Región' ? 8.5 : 12,
-                                      ),
-                                    );
+                      Padding(
+                        padding: EdgeInsets.only(
+                          right: widget.initialFocusPlace == null ? 56 : 0,
+                        ),
+                        child: InkWell(
+                          onTap: widget.routePlaces == null
+                              ? () async {
+                                  if (await showExplorationAreaPicker(
+                                        context,
+                                      ) &&
+                                      mounted) {
+                                    setState(() => isLoading = true);
+                                    await _loadMapData();
+                                    final area =
+                                        ExplorationContextService.instance.area;
+                                    if (area != null) {
+                                      await mapController?.animateCamera(
+                                        CameraUpdate.newLatLngZoom(
+                                          LatLng(area.latitude, area.longitude),
+                                          area.scope == 'Región' ? 8.5 : 12,
+                                        ),
+                                      );
+                                    }
                                   }
                                 }
-                              }
-                            : null,
-                        borderRadius: BorderRadius.circular(18),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.white,
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.travel_explore_rounded,
-                                color: AppColors.textLight,
-                              ),
-
-                              const SizedBox(width: 10),
-
-                              Expanded(
-                                child: Text(
-                                  widget.initialFocusPlace != null
-                                      ? widget.initialFocusPlace!.nombre
-                                      : widget.routePlaces != null
-                                      ? '${nearbyPlaces.length} paradas del recorrido'
-                                      : selectedLayer == 'turisticos'
-                                      ? nearbyPlaces.isEmpty
-                                            ? 'No hay lugares en esta zona'
-                                            : ExplorationContextService
-                                                      .instance
-                                                      .area ==
-                                                  null
-                                            ? '${nearbyPlaces.length} lugares cerca de ti'
-                                            : '${ExplorationContextService.instance.area!.name} · ${nearbyPlaces.length} lugares'
-                                      : servicePlaces.isEmpty
-                                      ? _layerTitle()
-                                      : '${servicePlaces.length} ${_layerTitle().toLowerCase()}',
-                                  style: const TextStyle(
-                                    color: AppColors.textDark,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-
-                              if (isLoadingServices || isLoadingRoute)
-                                const SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                ),
-                              if (widget.routePlaces == null &&
-                                  !isLoadingServices &&
-                                  !isLoadingRoute)
-                                IconButton(
-                                  tooltip: 'Buscar atractivo',
-                                  visualDensity: VisualDensity.compact,
-                                  onPressed: _searchOfficialPlaces,
-                                  icon: const Icon(
-                                    Icons.search_rounded,
-                                    color: AppColors.textDark,
-                                  ),
-                                ),
-                              if (widget.routePlaces == null &&
-                                  !isLoadingServices &&
-                                  !isLoadingRoute)
+                              : null,
+                          borderRadius: BorderRadius.circular(18),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.white,
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Row(
+                              children: [
                                 const Icon(
-                                  Icons.keyboard_arrow_down_rounded,
+                                  Icons.travel_explore_rounded,
                                   color: AppColors.textLight,
                                 ),
-                            ],
+
+                                const SizedBox(width: 10),
+
+                                Expanded(
+                                  child: Text(
+                                    widget.initialFocusPlace != null
+                                        ? widget.initialFocusPlace!.nombre
+                                        : widget.routePlaces != null
+                                        ? '${nearbyPlaces.length} paradas del recorrido'
+                                        : selectedLayer == 'turisticos'
+                                        ? nearbyPlaces.isEmpty
+                                              ? 'No hay lugares en esta zona'
+                                              : ExplorationContextService
+                                                        .instance
+                                                        .area ==
+                                                    null
+                                              ? '${nearbyPlaces.length} lugares cerca de ti'
+                                              : '${ExplorationContextService.instance.area!.name} · ${nearbyPlaces.length} lugares'
+                                        : servicePlaces.isEmpty
+                                        ? _layerTitle()
+                                        : '${servicePlaces.length} ${_layerTitle().toLowerCase()}',
+                                    style: const TextStyle(
+                                      color: AppColors.textDark,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+
+                                if (isLoadingServices || isLoadingRoute)
+                                  const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                if (widget.routePlaces == null &&
+                                    !isLoadingServices &&
+                                    !isLoadingRoute)
+                                  IconButton(
+                                    tooltip: 'Buscar atractivo',
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: _searchOfficialPlaces,
+                                    icon: const Icon(
+                                      Icons.search_rounded,
+                                      color: AppColors.textDark,
+                                    ),
+                                  ),
+                                if (widget.routePlaces == null &&
+                                    !isLoadingServices &&
+                                    !isLoadingRoute)
+                                  const Icon(
+                                    Icons.keyboard_arrow_down_rounded,
+                                    color: AppColors.textLight,
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -1315,6 +1341,7 @@ class _MapScreenState extends State<MapScreen> {
   };
 
   Widget _resultsSheet() => DraggableScrollableSheet(
+    controller: _resultsSheetController,
     initialChildSize: .29,
     minChildSize: .105,
     maxChildSize: .76,
@@ -1570,13 +1597,44 @@ class _MapScreenState extends State<MapScreen> {
     ),
   );
 
-  void _scrollCarouselTo(int index) {
+  void _scrollCarouselTo(int index, {double itemExtent = 324}) {
     if (index < 0) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_carouselController.hasClients) return;
+      final target = (index * itemExtent).clamp(
+        0.0,
+        _carouselController.position.maxScrollExtent,
+      );
       _carouselController.animateTo(
-        index * 324.0,
+        target,
         duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  void _focusServicePlace(
+    Map<String, dynamic> place, {
+    bool moveCamera = true,
+  }) {
+    final id = place['id']?.toString();
+    final index = servicePlaces.indexWhere(
+      (item) => item['id']?.toString() == id,
+    );
+    final location = _serviceLatLng(place);
+    setState(() {
+      _listMode = false;
+      _selectedServiceId = id;
+    });
+    if (moveCamera && location != null) {
+      mapController?.animateCamera(CameraUpdate.newLatLngZoom(location, 16));
+    }
+    _scrollCarouselTo(index, itemExtent: 334);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_resultsSheetController.isAttached) return;
+      _resultsSheetController.animateTo(
+        .34,
+        duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
       );
     });
@@ -1797,14 +1855,7 @@ class _MapScreenState extends State<MapScreen> {
     final name = place['displayName']?['text']?.toString() ?? 'Servicio';
     final photoUrl = _googlePlacesService.getPhotoUrl(place);
     return InkWell(
-      onTap: location == null
-          ? null
-          : () {
-              setState(() => _listMode = false);
-              mapController?.animateCamera(
-                CameraUpdate.newLatLngZoom(location, 15),
-              );
-            },
+      onTap: location == null ? null : () => _focusServicePlace(place),
       borderRadius: BorderRadius.circular(18),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -2180,9 +2231,13 @@ class _MapScreenState extends State<MapScreen> {
     final bool isSelected = selectedLayer == layer;
 
     return Padding(
+      key: _layerKeys[layer],
       padding: const EdgeInsets.only(right: 10),
       child: GestureDetector(
-        onTap: onTap,
+        onTap: () {
+          onTap();
+          _revealLayerChip(layer);
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
           decoration: BoxDecoration(
@@ -2219,6 +2274,19 @@ class _MapScreenState extends State<MapScreen> {
         ),
       ),
     );
+  }
+
+  void _revealLayerChip(String layer) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final chipContext = _layerKeys[layer]?.currentContext;
+      if (chipContext == null) return;
+      Scrollable.ensureVisible(
+        chipContext,
+        alignment: .5,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 
   Widget _emptyCard(String message) {
@@ -2377,8 +2445,11 @@ class _MapScreenState extends State<MapScreen> {
     final distance = _distanceToService(place);
     final photoUrl = _googlePlacesService.getPhotoUrl(place);
 
+    final isSelected = place['id']?.toString() == _selectedServiceId;
+
     return GestureDetector(
       onTap: () {
+        setState(() => _selectedServiceId = place['id']?.toString());
         final latLng = _serviceLatLng(place);
 
         if (latLng != null) {
@@ -2396,6 +2467,10 @@ class _MapScreenState extends State<MapScreen> {
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            width: 2,
+          ),
         ),
         child: Row(
           children: [
