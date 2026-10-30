@@ -1678,86 +1678,11 @@ class _SuggestedRouteDetailScreenState
                   ],
                 ),
               ),
-            const SizedBox(height: 9),
-            const Text(
-              'De dónde sale esta información',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 7),
-            Wrap(
-              spacing: 7,
-              runSpacing: 7,
-              children: readiness.sources.map(_informationSourceChip).toList(),
-            ),
-            const SizedBox(height: 7),
-            const Row(
-              children: [
-                Icon(
-                  Icons.offline_pin_outlined,
-                  size: 16,
-                  color: AppColors.textLight,
-                ),
-                SizedBox(width: 7),
-                Expanded(
-                  child: Text(
-                    'La información guardada funciona sin conexión; el trazado vial y el clima necesitan internet.',
-                    style: TextStyle(color: AppColors.textLight, fontSize: 10),
-                  ),
-                ),
-              ],
-            ),
           ],
         ),
       );
     },
   );
-
-  Widget _informationSourceChip(RouteInformationSource source) {
-    final (icon, color, background) = switch (source.kind) {
-      'official' => (
-        Icons.verified_outlined,
-        AppColors.primary,
-        const Color(0xFFE4F3ED),
-      ),
-      'community' => (
-        Icons.groups_outlined,
-        const Color(0xFFC46B16),
-        const Color(0xFFFFF0DF),
-      ),
-      'live' => (
-        Icons.cloud_done_outlined,
-        const Color(0xFF247D91),
-        const Color(0xFFE4F3F7),
-      ),
-      _ => (
-        Icons.auto_awesome_outlined,
-        const Color(0xFF6B5A91),
-        const Color(0xFFF0EAF8),
-      ),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 5),
-          Text(
-            '${source.label} · ${source.detail}',
-            style: TextStyle(
-              color: color,
-              fontSize: 9,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _activeRouteBody(
     List<Map<String, dynamic>> stops,
