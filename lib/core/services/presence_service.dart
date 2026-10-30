@@ -14,10 +14,15 @@ class PresenceService {
   static final PresenceService instance = PresenceService._();
 
   static const _deviceKey = 'presence_device_id';
-  static const _queueKey = 'presence_pending_samples';
-  static const _lastSampleKey = 'presence_last_sample_at';
+  static const _legacyQueueKey = 'presence_pending_samples';
+  static const _legacyLastSampleKey = 'presence_last_sample_at';
 
   final BackendApiClient _api = BackendApiClient();
+
+  String get _userKey =>
+      Supabase.instance.client.auth.currentUser?.id ?? 'guest';
+  String get _queueKey => 'presence_pending_samples_v2_$_userKey';
+  String get _lastSampleKey => 'presence_last_sample_at_v2_$_userKey';
 
   Future<Map<String, dynamic>?> record({
     required String source,
@@ -35,6 +40,7 @@ class PresenceService {
   }) async {
     if (Supabase.instance.client.auth.currentSession == null) return null;
     final preferences = await SharedPreferences.getInstance();
+    await _discardLegacyUnscopedData(preferences);
     final enabled =
         preferences.getBool('rutaamiga_presence_support_v1') ?? true;
     if (!enabled) return null;
@@ -77,6 +83,7 @@ class PresenceService {
   Future<List<Map<String, dynamic>>> syncPending() async {
     if (Supabase.instance.client.auth.currentSession == null) return const [];
     final preferences = await SharedPreferences.getInstance();
+    await _discardLegacyUnscopedData(preferences);
     final queue = _readQueue(preferences);
     if (queue.isEmpty) return const [];
     try {
@@ -112,5 +119,12 @@ class PresenceService {
     } catch (_) {
       return <Map<String, dynamic>>[];
     }
+  }
+
+  Future<void> _discardLegacyUnscopedData(SharedPreferences preferences) async {
+    // Las claves antiguas no identificaban al usuario. No es seguro atribuir
+    // esas coordenadas a la siguiente cuenta que inicie sesion.
+    await preferences.remove(_legacyQueueKey);
+    await preferences.remove(_legacyLastSampleKey);
   }
 }

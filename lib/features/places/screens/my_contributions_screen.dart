@@ -141,7 +141,17 @@ class _ContributionCard extends StatelessWidget {
                           color: AppColors.primary,
                         ),
                       )
-                    : Image.network(photo, fit: BoxFit.cover),
+                    : Image.network(
+                        photo,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => ColoredBox(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          child: const Icon(
+                            Icons.broken_image_outlined,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 14),

@@ -155,7 +155,19 @@ class _AdminReviewScreenState extends State<AdminReviewScreen> {
                                     color: AppColors.primary,
                                   ),
                                 )
-                              : Image.network(photo, fit: BoxFit.cover),
+                              : Image.network(
+                                  photo,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => ColoredBox(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.08,
+                                    ),
+                                    child: const Icon(
+                                      Icons.broken_image_outlined,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
                         ),
                         Padding(
                           padding: const EdgeInsets.all(16),
@@ -305,7 +317,17 @@ class _ReviewSheetState extends State<_ReviewSheet> {
                   borderRadius: BorderRadius.circular(18),
                   child: AspectRatio(
                     aspectRatio: 16 / 9,
-                    child: Image.network(photo, fit: BoxFit.cover),
+                    child: Image.network(
+                      photo,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const ColoredBox(
+                        color: AppColors.primarySoft,
+                        child: Icon(
+                          Icons.broken_image_outlined,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               const SizedBox(height: 18),

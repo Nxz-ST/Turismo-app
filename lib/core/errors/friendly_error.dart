@@ -33,6 +33,31 @@ String friendlyErrorMessage(
   if (text.contains('email not confirmed')) {
     return 'Confirma tu correo electrónico antes de iniciar sesión.';
   }
+  if (text.contains('user already registered') ||
+      text.contains('already been registered') ||
+      text.contains('email already')) {
+    return 'Ya existe una cuenta con ese correo electrónico.';
+  }
+  if (text.contains('password should be') || text.contains('weak password')) {
+    return 'La contraseña es muy corta o poco segura.';
+  }
+  if (text.contains('invalid email') ||
+      text.contains('email address is invalid')) {
+    return 'Escribe un correo electrónico válido.';
+  }
+  if (text.contains('rate limit') || text.contains('too many requests')) {
+    return 'Realizaste varios intentos. Espera un momento y vuelve a probar.';
+  }
+  if (text.contains('gps desactivado') ||
+      text.contains('location services are disabled')) {
+    return 'Activa la ubicación del teléfono para continuar.';
+  }
+  if (text.contains('permiso denegado') || text.contains('permission denied')) {
+    return 'Necesitamos permiso de ubicación para continuar.';
+  }
+  if (text.contains('permisos bloqueados') || text.contains('deniedforever')) {
+    return 'Habilita el permiso de ubicación desde los ajustes del teléfono.';
+  }
   if (text.contains('jwt') || text.contains('session')) {
     return 'Tu sesión expiró. Inicia sesión nuevamente.';
   }

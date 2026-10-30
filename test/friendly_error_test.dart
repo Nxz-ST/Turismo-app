@@ -32,4 +32,15 @@ void main() {
     expect(message, 'No pudimos completar la acción. Inténtalo nuevamente.');
     expect(message, isNot(contains('detalle interno')));
   });
+
+  test('traduce errores frecuentes de cuenta y permisos', () {
+    expect(
+      friendlyErrorMessage(Exception('User already registered')),
+      'Ya existe una cuenta con ese correo electrónico.',
+    );
+    expect(
+      friendlyErrorMessage(Exception('Permisos bloqueados')),
+      'Habilita el permiso de ubicación desde los ajustes del teléfono.',
+    );
+  });
 }

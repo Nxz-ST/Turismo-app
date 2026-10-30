@@ -88,6 +88,13 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
                         snapshot.data!,
                         headers: _photos.photoHeaders,
                         fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const ColoredBox(
+                          color: AppColors.primarySoft,
+                          child: Icon(
+                            Icons.broken_image_outlined,
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ),
               ),
             ),

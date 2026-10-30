@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:geolocator/geolocator.dart';
 import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -55,6 +56,7 @@ class RouteVisitService {
       await _upsertLocal({...result, 'sync_status': 'synced'});
       return result;
     } catch (_) {
+      final persistentPhotoPath = await _persistPendingPhoto(photo, clientId);
       final radius = _verificationRadius(
         payload['place_name'].toString(),
         payload['place_category'].toString(),
@@ -71,7 +73,7 @@ class RouteVisitService {
         'distance_m': distance,
         'verification_radius_m': radius,
         'visit_verified': distance <= radius && position.accuracy <= 120,
-        'photo_local_path': photo?.path,
+        'photo_local_path': persistentPhotoPath,
         'sync_status': 'pending',
         'created_at': DateTime.now().toUtc().toIso8601String(),
       };
@@ -141,6 +143,7 @@ class RouteVisitService {
           photo: photoPath == null ? null : File(photoPath),
         );
         items[index] = {...result, 'sync_status': 'synced'};
+        await _deletePendingPhoto(photoPath);
         changed = true;
       } catch (_) {
         // La cola permanece disponible para el siguiente intento.
@@ -206,6 +209,31 @@ class RouteVisitService {
   Future<void> _saveLocal(List<Map<String, dynamic>> items) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(_storageKey, jsonEncode(items));
+  }
+
+  Future<String?> _persistPendingPhoto(File? photo, String clientId) async {
+    if (photo == null || !await photo.exists()) return null;
+    final root = await getApplicationDocumentsDirectory();
+    final directory = Directory(
+      path.join(root.path, 'rutaamiga', 'pending_visits'),
+    );
+    await directory.create(recursive: true);
+    final extension = path.extension(photo.path).toLowerCase();
+    final destination = File(
+      path.join(
+        directory.path,
+        '$clientId${extension.isEmpty ? '.jpg' : extension}',
+      ),
+    );
+    if (path.equals(photo.path, destination.path)) return destination.path;
+    await photo.copy(destination.path);
+    return destination.path;
+  }
+
+  Future<void> _deletePendingPhoto(String? photoPath) async {
+    if (photoPath == null || photoPath.isEmpty) return;
+    final file = File(photoPath);
+    if (await file.exists()) await file.delete();
   }
 
   static double _verificationRadius(String name, String category) {

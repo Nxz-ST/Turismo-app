@@ -564,7 +564,17 @@ class _EvidencePreview extends StatelessWidget {
                         color: AppColors.primarySoft,
                         child: Icon(Icons.landscape, color: AppColors.primary),
                       )
-                    : Image.network(photo, fit: BoxFit.cover),
+                    : Image.network(
+                        photo,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const ColoredBox(
+                          color: AppColors.primarySoft,
+                          child: Icon(
+                            Icons.broken_image_outlined,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 13),

@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/errors/friendly_error.dart';
@@ -49,8 +52,10 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
   int _currentStep = 0;
   bool _allowPop = false;
 
-  String get _draftKey =>
-      'place_contribution_draft_${widget.existingPlace?.id ?? 'new'}';
+  String get _draftKey {
+    final userId = Supabase.instance.client.auth.currentUser?.id ?? 'guest';
+    return 'place_contribution_draft_v2_${userId}_${widget.existingPlace?.id ?? 'new'}';
+  }
 
   @override
   void initState() {
@@ -103,7 +108,9 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
     );
     await preferences.setInt('${_draftKey}_step', _currentStep);
     if (selectedImage != null) {
-      await preferences.setString('${_draftKey}_image', selectedImage!.path);
+      final imagePath = await _persistDraftImage(selectedImage!);
+      selectedImage = File(imagePath);
+      await preferences.setString('${_draftKey}_image', imagePath);
     }
     if (selectedSource != null) {
       await preferences.setString(
@@ -135,6 +142,7 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
 
   Future<void> _clearDraft() async {
     final preferences = await SharedPreferences.getInstance();
+    final imagePath = preferences.getString('${_draftKey}_image');
     for (final suffix in const [
       'name',
       'description',
@@ -145,6 +153,34 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
     ]) {
       await preferences.remove('${_draftKey}_$suffix');
     }
+    await _deleteManagedDraftImage(imagePath);
+  }
+
+  Future<String> _persistDraftImage(File image) async {
+    if (!await image.exists()) return image.path;
+    final root = await getApplicationDocumentsDirectory();
+    final directory = Directory(path.join(root.path, 'rutaamiga', 'drafts'));
+    await directory.create(recursive: true);
+    final extension = path.extension(image.path).toLowerCase();
+    final safeKey = _draftKey.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+    final destination = File(
+      path.join(
+        directory.path,
+        '$safeKey${extension.isEmpty ? '.jpg' : extension}',
+      ),
+    );
+    if (path.equals(image.path, destination.path)) return destination.path;
+    await image.copy(destination.path);
+    return destination.path;
+  }
+
+  Future<void> _deleteManagedDraftImage(String? imagePath) async {
+    if (imagePath == null || imagePath.isEmpty) return;
+    final root = await getApplicationDocumentsDirectory();
+    final draftsDirectory = path.join(root.path, 'rutaamiga', 'drafts');
+    if (!path.isWithin(draftsDirectory, imagePath)) return;
+    final image = File(imagePath);
+    if (await image.exists()) await image.delete();
   }
 
   Future<void> _requestExit() async {
