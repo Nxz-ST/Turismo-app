@@ -325,113 +325,180 @@ class _SuggestedRoutesScreenState extends State<SuggestedRoutesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       bottomNavigationBar: const MainNavigationBar(currentIndex: 2),
-      appBar: AppBar(title: const Text('Rutas para ti')),
-      body: Column(
-        children: [
-          if (_activeRoute.route != null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-              child: ActiveRouteCard(
-                route: _activeRoute.route!,
-                onContinue: _openActiveRoute,
-                compact: true,
-              ),
-            ),
-          Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
-              future: _future,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return _EmptyRoutes(
-                    title: 'No pudimos crear rutas',
-                    message: _friendlyRouteError(snapshot.error),
-                    onRetry: _reload,
-                  );
-                }
-                final routes = snapshot.data ?? const [];
-                if (routes.isEmpty) {
-                  return _EmptyRoutes(
-                    title: _durationMinutes <= 120
-                        ? 'No hay una ruta segura de 2 horas'
-                        : 'Aún no hay rutas compatibles',
-                    message: _durationMinutes <= 120
-                        ? 'Los atractivos naturales de esta zona necesitan más tiempo de traslado y actividad. Prueba “Medio día”; los nevados solo aparecerán en planes de día completo.'
-                        : 'Prueba ampliar el tiempo, cambiar el destino o elegir otra experiencia.',
-                    actionLabel: 'Cambiar opciones',
-                    onRetry: _showRouteOptionsSheet,
-                    secondaryActionLabel: 'Crear mi propia ruta',
-                    onSecondaryAction: _openRouteCreator,
-                  );
-                }
-                return RefreshIndicator(
-                  onRefresh: _reload,
-                  child: ListView(
-                    padding: const EdgeInsets.all(20),
-                    children: [
-                      _destinationHeader(routes),
-                      const SizedBox(height: 22),
-                      const Text(
-                        'La mejor opción para tu plan',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Equilibra tiempo, distancia y tipo de experiencia.',
-                        style: TextStyle(
-                          color: AppColors.textLight,
-                          fontSize: 11,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _RouteCard(route: routes.first, featured: true),
-                      if (routes.length > 1) ...[
-                        const SizedBox(height: 24),
-                        Row(
+      appBar: AppBar(
+        title: Text(
+          _activeRoute.route == null ? 'Rutas para ti' : 'Tu recorrido',
+        ),
+      ),
+      body: _activeRoute.route != null
+          ? _activeRouteOverview(_activeRoute.route!)
+          : Column(
+              children: [
+                Expanded(
+                  child: FutureBuilder<List<Map<String, dynamic>>>(
+                    future: _future,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (snapshot.hasError) {
+                        return _EmptyRoutes(
+                          title: 'No pudimos crear rutas',
+                          message: _friendlyRouteError(snapshot.error),
+                          onRetry: _reload,
+                        );
+                      }
+                      final routes = snapshot.data ?? const [];
+                      if (routes.isEmpty) {
+                        return _EmptyRoutes(
+                          title: _durationMinutes <= 120
+                              ? 'No hay una ruta segura de 2 horas'
+                              : 'Aún no hay rutas compatibles',
+                          message: _durationMinutes <= 120
+                              ? 'Los atractivos naturales de esta zona necesitan más tiempo de traslado y actividad. Prueba “Medio día”; los nevados solo aparecerán en planes de día completo.'
+                              : 'Prueba ampliar el tiempo, cambiar el destino o elegir otra experiencia.',
+                          actionLabel: 'Cambiar opciones',
+                          onRetry: _showRouteOptionsSheet,
+                          secondaryActionLabel: 'Crear mi propia ruta',
+                          onSecondaryAction: _openRouteCreator,
+                        );
+                      }
+                      return RefreshIndicator(
+                        onRefresh: _reload,
+                        child: ListView(
+                          padding: const EdgeInsets.all(20),
                           children: [
-                            const Expanded(
-                              child: Text(
-                                'Otras formas de explorar',
-                                style: TextStyle(
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.w900,
-                                ),
+                            _destinationHeader(routes),
+                            const SizedBox(height: 22),
+                            const Text(
+                              'La mejor opción para tu plan',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
                               ),
                             ),
-                            Text(
-                              '${routes.length - 1} alternativas',
-                              style: const TextStyle(
+                            const SizedBox(height: 4),
+                            const Text(
+                              'Equilibra tiempo, distancia y tipo de experiencia.',
+                              style: TextStyle(
                                 color: AppColors.textLight,
                                 fontSize: 11,
                               ),
                             ),
+                            const SizedBox(height: 12),
+                            _RouteCard(route: routes.first, featured: true),
+                            if (routes.length > 1) ...[
+                              const SizedBox(height: 24),
+                              Row(
+                                children: [
+                                  const Expanded(
+                                    child: Text(
+                                      'Otras formas de explorar',
+                                      style: TextStyle(
+                                        fontSize: 19,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    '${routes.length - 1} alternativas',
+                                    style: const TextStyle(
+                                      color: AppColors.textLight,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              for (final route in routes.skip(1)) ...[
+                                _RouteCard(route: route),
+                                const SizedBox(height: 12),
+                              ],
+                            ],
+                            if (routes.length < 3) ...[
+                              const SizedBox(height: 12),
+                              _RouteAvailabilityNote(routeCount: routes.length),
+                            ],
+                            const SizedBox(height: 12),
+                            _planner(),
                           ],
                         ),
-                        const SizedBox(height: 12),
-                        for (final route in routes.skip(1)) ...[
-                          _RouteCard(route: route),
-                          const SizedBox(height: 12),
-                        ],
-                      ],
-                      if (routes.length < 3) ...[
-                        const SizedBox(height: 12),
-                        _RouteAvailabilityNote(routeCount: routes.length),
-                      ],
-                      const SizedBox(height: 12),
-                      _planner(),
-                    ],
+                      );
+                    },
                   ),
-                );
-              },
+                ),
+              ],
             ),
+    );
+  }
+
+  Widget _activeRouteOverview(Map<String, dynamic> route) {
+    final stops = (route['stops'] as List? ?? const []);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+      children: [
+        const Text(
+          'Tu viaje está en marcha',
+          style: TextStyle(
+            color: AppColors.textDark,
+            fontSize: 25,
+            fontWeight: FontWeight.w900,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          stops.length == 1
+              ? 'Continúa hacia tu próxima parada.'
+              : 'Tienes ${stops.length} paradas en este recorrido. Continúa desde donde lo dejaste.',
+          style: const TextStyle(
+            color: AppColors.textLight,
+            fontSize: 13,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 20),
+        ActiveRouteCard(route: route, onContinue: _openActiveRoute),
+        const SizedBox(height: 18),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: AppColors.primarySoft,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFCFE7DE)),
+          ),
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.explore_outlined, color: AppColors.primary, size: 25),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Continúa cuando estés listo',
+                      style: TextStyle(
+                        color: AppColors.textDark,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'RutaAmiga conservará tu avance y te guiará hacia la siguiente parada.',
+                      style: TextStyle(
+                        color: AppColors.textLight,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

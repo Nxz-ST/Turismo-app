@@ -55,10 +55,10 @@ class _ActiveRouteCardState extends State<ActiveRouteCard> {
         borderRadius: BorderRadius.circular(20),
         child: Ink(
           padding: EdgeInsets.fromLTRB(
-            16,
+            widget.compact ? 16 : 20,
             widget.compact ? 13 : 16,
-            13,
-            widget.compact ? 13 : 16,
+            widget.compact ? 13 : 20,
+            widget.compact ? 13 : 20,
           ),
           decoration: BoxDecoration(
             color: AppColors.primaryDark,
@@ -76,16 +76,16 @@ class _ActiveRouteCardState extends State<ActiveRouteCard> {
               Row(
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: widget.compact ? 40 : 54,
+                    height: widget.compact ? 40 : 54,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: .13),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.navigation_rounded,
                       color: Colors.white,
-                      size: 21,
+                      size: widget.compact ? 21 : 28,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -93,11 +93,11 @@ class _ActiveRouteCardState extends State<ActiveRouteCard> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'RECORRIDO ACTIVO',
                           style: TextStyle(
                             color: Color(0xFF9DE5D1),
-                            fontSize: 9,
+                            fontSize: widget.compact ? 9 : 10,
                             fontWeight: FontWeight.w900,
                             letterSpacing: .9,
                           ),
@@ -109,9 +109,9 @@ class _ActiveRouteCardState extends State<ActiveRouteCard> {
                               : 'En camino a ${next['name'] ?? 'la siguiente parada'}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 15,
+                            fontSize: widget.compact ? 15 : 17,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
@@ -137,12 +137,66 @@ class _ActiveRouteCardState extends State<ActiveRouteCard> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(99),
                 child: LinearProgressIndicator(
-                  minHeight: 4,
+                  minHeight: widget.compact ? 4 : 7,
                   value: progress,
                   color: const Color(0xFF67D5B5),
                   backgroundColor: Colors.white24,
                 ),
               ),
+              if (!widget.compact) ...[
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(
+                      completed
+                          ? Icons.check_circle_outline_rounded
+                          : Icons.flag_outlined,
+                      color: const Color(0xFF9DE5D1),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        '$_completed de ${stops.length} paradas visitadas',
+                        style: const TextStyle(
+                          color: Color(0xFFC7DAD5),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 13,
+                        vertical: 9,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Continuar',
+                            style: TextStyle(
+                              color: AppColors.primaryDark,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            color: AppColors.primaryDark,
+                            size: 17,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
