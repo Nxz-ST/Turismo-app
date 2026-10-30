@@ -158,19 +158,6 @@ class _MapScreenState extends State<MapScreen> {
   final ScrollController _carouselController = ScrollController();
   final DraggableScrollableController _resultsSheetController =
       DraggableScrollableController();
-  final Map<String, GlobalKey> _layerKeys = {
-    for (final layer in const [
-      'turisticos',
-      'oficiales',
-      'rutaamiga',
-      'restaurant',
-      'lodging',
-      'pharmacy',
-      'gas_station',
-      'atm',
-    ])
-      layer: GlobalKey(),
-  };
 
   LatLng currentPosition = const LatLng(-12.0464, -77.0428);
   LatLng? _cameraTarget;
@@ -1092,68 +1079,164 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Widget _layerBar({EdgeInsets padding = EdgeInsets.zero}) {
-    final scaledTextHeight = MediaQuery.textScalerOf(context).scale(13);
-    final barHeight = (scaledTextHeight + 34).clamp(48.0, 64.0);
-    return SizedBox(
-      height: barHeight,
-      child: ListView(
-        padding: padding.add(const EdgeInsets.symmetric(vertical: 3)),
-        scrollDirection: Axis.horizontal,
+    return Padding(
+      padding: padding.add(const EdgeInsets.symmetric(vertical: 3)),
+      child: Row(
         children: [
-          _layerChip(
-            'Todos',
-            'turisticos',
-            Icons.map_outlined,
-            onTap: _showAllTouristPlaces,
+          Expanded(
+            child: _primaryLayerButton(
+              'Todos',
+              'turisticos',
+              Icons.map_outlined,
+              onTap: _showAllTouristPlaces,
+            ),
           ),
-          _layerChip(
-            'Oficiales',
-            'oficiales',
-            Icons.verified_outlined,
-            onTap: () {
-              _showOnlyTouristPlaces();
-              setState(() => selectedLayer = 'oficiales');
-            },
+          const SizedBox(width: 6),
+          Expanded(
+            child: _primaryLayerButton(
+              'Oficiales',
+              'oficiales',
+              Icons.verified_outlined,
+              onTap: () {
+                _showOnlyTouristPlaces();
+                setState(() => selectedLayer = 'oficiales');
+              },
+            ),
           ),
-          _layerChip(
-            'RutaAmiga',
-            'rutaamiga',
-            Icons.explore_outlined,
-            onTap: _showValidatedDiscoveries,
+          const SizedBox(width: 6),
+          Expanded(
+            child: _primaryLayerButton(
+              'RutaAmiga',
+              'rutaamiga',
+              Icons.explore_outlined,
+              onTap: _showValidatedDiscoveries,
+            ),
           ),
-          _layerChip(
-            'Comer',
-            'restaurant',
-            Icons.restaurant_outlined,
-            onTap: () => _loadNearbyServices('restaurant', 'restaurant'),
-          ),
-          _layerChip(
-            'Dormir',
-            'lodging',
-            Icons.bed_outlined,
-            onTap: () => _loadNearbyServices('lodging', 'lodging'),
-          ),
-          _layerChip(
-            'Farmacia',
-            'pharmacy',
-            Icons.local_pharmacy_outlined,
-            onTap: () => _loadNearbyServices('pharmacy', 'pharmacy'),
-          ),
-          _layerChip(
-            'Combustible',
-            'gas_station',
-            Icons.local_gas_station_outlined,
-            onTap: () => _loadNearbyServices('gas_station', 'gas_station'),
-          ),
-          _layerChip(
-            'Cajeros',
-            'atm',
-            Icons.atm_outlined,
-            onTap: () => _loadNearbyServices('atm', 'atm'),
+          const SizedBox(width: 6),
+          SizedBox(
+            width: 48,
+            height: 46,
+            child: Tooltip(
+              message: _isServiceLayer ? _layerTitle() : 'Servicios cercanos',
+              child: Material(
+                color: _isServiceLayer ? AppColors.primary : Colors.white,
+                elevation: 2,
+                shadowColor: Colors.black26,
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  onTap: _showServiceLayerPicker,
+                  borderRadius: BorderRadius.circular(16),
+                  child: Icon(
+                    _isServiceLayer
+                        ? _serviceIcon()
+                        : Icons.add_business_outlined,
+                    color: _isServiceLayer ? Colors.white : AppColors.primary,
+                    size: 21,
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  bool get _isServiceLayer => const {
+    'restaurant',
+    'lodging',
+    'pharmacy',
+    'gas_station',
+    'atm',
+  }.contains(selectedLayer);
+
+  Future<void> _showServiceLayerPicker() async {
+    const options = [
+      (layer: 'restaurant', label: 'Dónde comer', icon: Icons.restaurant),
+      (layer: 'lodging', label: 'Dónde dormir', icon: Icons.hotel),
+      (layer: 'pharmacy', label: 'Farmacias', icon: Icons.local_pharmacy),
+      (
+        layer: 'gas_station',
+        label: 'Combustible',
+        icon: Icons.local_gas_station,
+      ),
+      (layer: 'atm', label: 'Cajeros', icon: Icons.atm),
+    ];
+    final layer = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (sheetContext) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 2, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Servicios cercanos',
+              style: TextStyle(
+                color: AppColors.textDark,
+                fontSize: 21,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Elige qué necesitas encontrar alrededor de tu ubicación.',
+              style: TextStyle(color: AppColors.textLight),
+            ),
+            const SizedBox(height: 16),
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 2.35,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemCount: options.length,
+              itemBuilder: (_, index) {
+                final option = options[index];
+                final selected = selectedLayer == option.layer;
+                return Material(
+                  color: selected
+                      ? AppColors.primarySoft
+                      : AppColors.background,
+                  borderRadius: BorderRadius.circular(16),
+                  child: InkWell(
+                    onTap: () => Navigator.pop(sheetContext, option.layer),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Row(
+                        children: [
+                          Icon(option.icon, color: AppColors.primary, size: 21),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              option.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.textDark,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+    if (layer != null && mounted) await _loadNearbyServices(layer, layer);
   }
 
   List<TouristPlaceModel> get _filteredOfficialPlaces {
@@ -2263,7 +2346,7 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  Widget _layerChip(
+  Widget _primaryLayerButton(
     String label,
     String layer,
     IconData icon, {
@@ -2271,43 +2354,35 @@ class _MapScreenState extends State<MapScreen> {
   }) {
     final bool isSelected = selectedLayer == layer;
 
-    return Padding(
-      key: _layerKeys[layer],
-      padding: const EdgeInsets.only(right: 10),
-      child: GestureDetector(
-        onTap: () {
-          onTap();
-          _revealLayerChip(layer);
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : AppColors.white,
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
+    return Material(
+      color: isSelected ? AppColors.primary : AppColors.white,
+      elevation: 2,
+      shadowColor: Colors.black26,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: SizedBox(
+          height: 46,
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                size: 17,
+                size: 16,
                 color: isSelected ? Colors.white : AppColors.primary,
               ),
-
-              const SizedBox(width: 6),
-
-              Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : AppColors.textDark,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
+              const SizedBox(width: 5),
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppColors.textDark,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 11,
+                  ),
                 ),
               ),
             ],
@@ -2315,19 +2390,6 @@ class _MapScreenState extends State<MapScreen> {
         ),
       ),
     );
-  }
-
-  void _revealLayerChip(String layer) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final chipContext = _layerKeys[layer]?.currentContext;
-      if (chipContext == null) return;
-      Scrollable.ensureVisible(
-        chipContext,
-        alignment: .5,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-      );
-    });
   }
 
   Widget _emptyCard(String message) {
