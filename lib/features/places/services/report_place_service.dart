@@ -101,36 +101,12 @@ class ReportPlaceService {
 
     final evidenceId = evidence['id'].toString();
     await _api.post('/evidences/$evidenceId/process');
-    return _waitForDecision(evidenceId, fallback: evidence);
-  }
-
-  Future<Map<String, dynamic>> _waitForDecision(
-    String evidenceId, {
-    required Map<String, dynamic> fallback,
-  }) async {
-    const terminalStatuses = {
-      'candidate',
-      'validated',
-      'needs_review',
-      'duplicate',
-      'rejected',
-      'failed',
+    return {
+      ...evidence,
+      'status': 'pending',
+      'decision_reason':
+          'El aporte fue recibido y continuará procesándose en segundo plano.',
     };
-    Map<String, dynamic> latest = {...fallback, 'status': 'pending'};
-    for (var attempt = 0; attempt < 40; attempt++) {
-      await Future<void>.delayed(const Duration(seconds: 1));
-      try {
-        latest = Map<String, dynamic>.from(
-          await _api.get('/evidences/$evidenceId') as Map,
-        );
-        if (terminalStatuses.contains(latest['status']?.toString())) {
-          return latest;
-        }
-      } on BackendApiException catch (error) {
-        if (!error.isNetworkFailure) rethrow;
-      }
-    }
-    return latest;
   }
 
   Future<Map<String, dynamic>> completeProfile({

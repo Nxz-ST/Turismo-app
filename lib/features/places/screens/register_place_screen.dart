@@ -433,7 +433,9 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
             content: Text(
               estado == 'offline_pending'
                   ? 'Aporte guardado sin conexión. Se enviará automáticamente cuando recuperes internet.'
-                  : accepted || queued || estado == 'needs_review'
+                  : queued
+                  ? 'Aporte enviado. Te avisaremos aquí cuando termine la validación.'
+                  : accepted || estado == 'needs_review'
                   ? 'Evidencia registrada correctamente.'
                   : title,
             ),
