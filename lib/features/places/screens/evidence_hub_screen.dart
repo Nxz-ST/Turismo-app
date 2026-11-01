@@ -154,7 +154,7 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
   );
 
   Widget _discoveryHero() => Container(
-    height: 225,
+    height: 252,
     clipBehavior: Clip.antiAlias,
     decoration: BoxDecoration(
       color: AppColors.primaryDark,
@@ -217,7 +217,7 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
                   ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 16),
               const SizedBox(
                 width: 270,
                 child: Text(
@@ -243,20 +243,20 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
                 ),
               ),
               const SizedBox(height: 15),
-              FilledButton.icon(
-                onPressed: _register,
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppColors.primaryDark,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 13,
+              SizedBox(
+                height: 46,
+                child: FilledButton.icon(
+                  onPressed: _register,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.primaryDark,
+                    padding: const EdgeInsets.symmetric(horizontal: 18),
                   ),
-                ),
-                icon: const Icon(Icons.add_a_photo_rounded, size: 20),
-                label: const Text(
-                  'Aportar un lugar',
-                  style: TextStyle(fontWeight: FontWeight.w900),
+                  icon: const Icon(Icons.add_a_photo_rounded, size: 20),
+                  label: const Text(
+                    'Aportar un lugar',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
                 ),
               ),
             ],
