@@ -406,18 +406,42 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
         aiMessage = '$title\n$motivo';
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            estado == 'offline_pending'
-                ? 'Aporte guardado sin conexión. Se enviará automáticamente cuando recuperes internet.'
-                : accepted || queued || estado == 'needs_review'
-                ? 'Evidencia registrada correctamente.'
-                : title,
+      if (estado == 'rejected') {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            icon: const Icon(
+              Icons.add_a_photo_outlined,
+              color: AppColors.primary,
+              size: 34,
+            ),
+            title: const Text('Necesitamos otra fotografía'),
+            content: Text(motivo),
+            actions: [
+              FilledButton.icon(
+                onPressed: () => Navigator.pop(dialogContext),
+                icon: const Icon(Icons.camera_alt_outlined),
+                label: const Text('Tomar otra fotografía'),
+              ),
+            ],
           ),
-        ),
-      );
+        );
+        if (mounted) setState(() => _currentStep = 0);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              estado == 'offline_pending'
+                  ? 'Aporte guardado sin conexión. Se enviará automáticamente cuando recuperes internet.'
+                  : accepted || queued || estado == 'needs_review'
+                  ? 'Evidencia registrada correctamente.'
+                  : title,
+            ),
+          ),
+        );
+      }
 
+      if (!mounted) return;
       if (accepted) {
         final contributionType =
             result['contribution_type']?.toString() ?? 'new_place';
