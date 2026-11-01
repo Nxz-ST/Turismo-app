@@ -16,6 +16,7 @@ import '../../../core/services/location_service.dart';
 import '../../../core/services/presence_service.dart';
 import '../services/report_place_service.dart';
 import '../models/tourist_place_model.dart';
+import '../widgets/place_profile_questionnaire.dart';
 
 class RegisterPlaceScreen extends StatefulWidget {
   const RegisterPlaceScreen({super.key, this.existingPlace});
@@ -323,13 +324,6 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
       setState(() => _currentStep = 2);
       return;
     }
-    if (widget.existingPlace == null && description.length < 20) {
-      _showStepMessage(
-        'Cuéntanos un poco más sobre el lugar (mínimo 20 caracteres).',
-      );
-      setState(() => _currentStep = 2);
-      return;
-    }
     if (image == null || !image.existsSync()) {
       _showStepMessage('Vuelve a seleccionar la fotografía para continuar.');
       setState(() => _currentStep = 0);
@@ -383,7 +377,7 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
           result['predicted_category']?.toString() ?? 'No determinada';
       final confianza =
           double.tryParse(result['confidence']?.toString() ?? '0') ?? 0;
-      final accepted = estado == 'candidate';
+      final accepted = estado == 'candidate' || estado == 'validated';
       final queued = const {
         'offline_pending',
         'pending',
@@ -392,7 +386,7 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
       }.contains(estado);
 
       final title = switch (estado) {
-        'candidate' => 'Posible nuevo atractivo turístico',
+        'candidate' || 'validated' => 'Aporte validado',
         'needs_review' => 'Caso enviado a revisión',
         'duplicate' => 'Aporte asociado para revisión',
         'rejected' => 'La evidencia no fue aceptada',
@@ -423,6 +417,40 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
           ),
         ),
       );
+
+      if (accepted) {
+        final contributionType =
+            result['contribution_type']?.toString() ?? 'new_place';
+        final snapshot = Map<String, dynamic>.from(
+          result['target_place_snapshot'] as Map? ?? const {},
+        );
+        final answers = await showPlaceProfileQuestionnaire(
+          context,
+          existingPlace: contributionType == 'existing_place',
+          placeName: snapshot['nombre']?.toString() ?? name,
+        );
+        if (answers != null) {
+          try {
+            await _reportPlaceService.completeProfile(
+              evidenceId: result['id'].toString(),
+              answers: answers,
+            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Información del lugar guardada.'),
+                ),
+              );
+            }
+          } catch (error) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(friendlyErrorMessage(error))),
+              );
+            }
+          }
+        }
+      }
 
       if (accepted || queued || estado == 'needs_review') {
         await _clearDraft();
@@ -698,12 +726,8 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _stepIntro(
-        widget.existingPlace == null
-            ? 'Cuéntanos sobre el lugar'
-            : 'Cuéntanos sobre tu visita',
-        widget.existingPlace == null
-            ? 'No necesitas saber si ya está registrado. RutaAmiga comparará el nombre, la ubicación y la fotografía.'
-            : 'El lugar ya está seleccionado; puedes añadir una descripción breve.',
+        'Identifica el lugar',
+        'No necesitas saber si ya está registrado. RutaAmiga comparará el nombre, la ubicación y la fotografía; después te hará preguntas sencillas.',
       ),
       const SizedBox(height: 24),
       const Text(
@@ -717,32 +741,18 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
         icon: Icons.place_outlined,
       ),
       const SizedBox(height: 18),
-      Text(
-        widget.existingPlace == null
-            ? 'Descripción breve · obligatoria'
-            : 'Descripción breve · opcional',
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+      const Text(
+        'Nota breve · opcional',
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
       ),
       const SizedBox(height: 8),
       _inputField(
         controller: descriptionController,
-        hint: '¿Qué viste, qué hace especial al lugar y cómo fue llegar?',
+        hint:
+            'Puedes añadir una referencia; la ficha se construirá con preguntas verificables.',
         icon: Icons.notes_rounded,
         maxLines: 5,
       ),
-      if (widget.existingPlace == null) ...[
-        const SizedBox(height: 7),
-        Text(
-          '${descriptionController.text.trim().length}/20 caracteres mínimos',
-          style: TextStyle(
-            color: descriptionController.text.trim().length >= 20
-                ? AppColors.primary
-                : AppColors.textLight,
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
       const SizedBox(height: 14),
       const Row(
         children: [
@@ -967,14 +977,6 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
     }
     if (_currentStep == 2 && nameController.text.trim().isEmpty) {
       _showStepMessage('Escribe un nombre para el lugar.');
-      return;
-    }
-    if (_currentStep == 2 &&
-        widget.existingPlace == null &&
-        descriptionController.text.trim().length < 20) {
-      _showStepMessage(
-        'Cuéntanos un poco más sobre el lugar (mínimo 20 caracteres).',
-      );
       return;
     }
     if (_currentStep < 3) {
