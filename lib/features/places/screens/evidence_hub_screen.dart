@@ -8,6 +8,7 @@ import '../../../core/services/presence_service.dart';
 import '../../../core/widgets/main_navigation_bar.dart';
 import '../services/report_place_service.dart';
 import '../widgets/evidence_status_badge.dart';
+import '../widgets/place_profile_questionnaire.dart';
 import 'my_contributions_screen.dart';
 import 'register_place_screen.dart';
 
@@ -23,7 +24,26 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
   List<Map<String, dynamic>> _items = const [];
   Map<String, dynamic>? _presence;
   bool _loading = true;
+  bool _completingProfile = false;
   String? _error;
+
+  Map<String, dynamic>? get _pendingProfile {
+    for (final item in _items) {
+      final status = item['status']?.toString();
+      if (status != 'candidate' && status != 'validated') continue;
+      final events = (item['processing_events'] as List? ?? const []);
+      final completed = events.any(
+        (event) =>
+            event is Map &&
+            event['stage']?.toString() == 'community_profile' &&
+            event['status']?.toString() == 'completed',
+      );
+      if (!completed && item['id']?.toString().startsWith('local-') != true) {
+        return item;
+      }
+    }
+    return null;
+  }
 
   @override
   void initState() {
@@ -65,6 +85,42 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
     if (mounted) await _reload();
   }
 
+  Future<void> _completePendingProfile() async {
+    final item = _pendingProfile;
+    if (item == null || _completingProfile) return;
+    final snapshot = Map<String, dynamic>.from(
+      item['target_place_snapshot'] as Map? ?? const {},
+    );
+    final answers = await showPlaceProfileQuestionnaire(
+      context,
+      existingPlace: item['contribution_type']?.toString() == 'existing_place',
+      placeName:
+          snapshot['nombre']?.toString() ??
+          item['name']?.toString() ??
+          'este lugar',
+    );
+    if (answers == null || !mounted) return;
+    setState(() => _completingProfile = true);
+    try {
+      await _service.completeProfile(
+        evidenceId: item['id'].toString(),
+        answers: answers,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Información del lugar guardada.')),
+      );
+      await _reload();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(friendlyErrorMessage(error))));
+    } finally {
+      if (mounted) setState(() => _completingProfile = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,6 +142,11 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                   sliver: SliverToBoxAdapter(child: _presenceReminder()),
+                ),
+              if (_pendingProfile != null)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  sliver: SliverToBoxAdapter(child: _profileReminder()),
                 ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
@@ -304,6 +365,84 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
             Icons.check_circle_rounded,
             color: AppColors.primary,
             size: 18,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _profileReminder() {
+    final item = _pendingProfile!;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF6E8),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFF2D7A7)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFE8BF),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: const Icon(
+              Icons.fact_check_outlined,
+              color: Color(0xFF9A5A00),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Tu lugar fue validado',
+                  style: TextStyle(
+                    color: AppColors.primaryDark,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Completa la información de ${item['name'] ?? 'tu aporte'} para mejorar su ficha.',
+                  style: const TextStyle(
+                    color: AppColors.textLight,
+                    fontSize: 11,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: _completingProfile
+                      ? null
+                      : _completePendingProfile,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 38),
+                    padding: const EdgeInsets.symmetric(horizontal: 13),
+                  ),
+                  icon: _completingProfile
+                      ? const SizedBox(
+                          width: 15,
+                          height: 15,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.edit_note_rounded, size: 18),
+                  label: const Text(
+                    'Completar información',
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
