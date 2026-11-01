@@ -49,10 +49,10 @@ class EvidenceStatusInfo {
         'Un revisor debe confirmar la decisión final.',
       ),
       'duplicate' => const EvidenceStatusInfo(
-        'Posible duplicado',
+        'Aporte a lugar existente',
         Colors.deepOrange,
         Icons.copy_outlined,
-        'El lugar parece estar registrado previamente.',
+        'La evidencia se guardó y coincide con un lugar registrado previamente.',
       ),
       'validated' => const EvidenceStatusInfo(
         'Validado',

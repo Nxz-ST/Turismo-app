@@ -720,7 +720,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 9),
             Expanded(
               child: Text(
-                'Visita activa · ${remaining.inHours} h ${minutes.toString().padLeft(2, '0')} min para registrar un lugar',
+                'Visita activa · ${remaining.inHours} h ${minutes.toString().padLeft(2, '0')} min para realizar un aporte',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(

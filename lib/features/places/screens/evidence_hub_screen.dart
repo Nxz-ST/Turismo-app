@@ -10,7 +10,6 @@ import '../services/report_place_service.dart';
 import '../widgets/evidence_status_badge.dart';
 import 'my_contributions_screen.dart';
 import 'register_place_screen.dart';
-import 'select_existing_place_screen.dart';
 
 class EvidenceHubScreen extends StatefulWidget {
   const EvidenceHubScreen({super.key});
@@ -66,14 +65,6 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
     if (mounted) await _reload();
   }
 
-  Future<void> _contributeExisting() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SelectExistingPlaceScreen()),
-    );
-    if (mounted) await _reload();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,10 +81,6 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
                 sliver: SliverToBoxAdapter(child: _discoveryHero()),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                sliver: SliverToBoxAdapter(child: _quickActions()),
               ),
               if (_presenceRemaining != null)
                 SliverPadding(
@@ -221,7 +208,7 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
                   borderRadius: BorderRadius.circular(99),
                 ),
                 child: const Text(
-                  'DESCUBRE · REGISTRA · COMPARTE',
+                  'FOTOGRAFÍA · UBICACIÓN · VALIDACIÓN',
                   style: TextStyle(
                     color: Color(0xFFAAE6D4),
                     fontSize: 9,
@@ -234,7 +221,7 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
               const SizedBox(
                 width: 270,
                 child: Text(
-                  '¿Encontraste algo especial?',
+                  'Comparte lo que encontraste',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 25,
@@ -247,7 +234,7 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
               const SizedBox(
                 width: 275,
                 child: Text(
-                  'Tu foto puede poner un nuevo destino en el mapa.',
+                  'No importa si el lugar es nuevo o ya existe: RutaAmiga lo comprobará y guardará tu evidencia correctamente.',
                   style: TextStyle(
                     color: Color(0xFFC6DAD4),
                     fontSize: 12,
@@ -268,7 +255,7 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
                 ),
                 icon: const Icon(Icons.add_a_photo_rounded, size: 20),
                 label: const Text(
-                  'Registrar descubrimiento',
+                  'Aportar un lugar',
                   style: TextStyle(fontWeight: FontWeight.w900),
                 ),
               ),
@@ -276,84 +263,6 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
           ),
         ),
       ],
-    ),
-  );
-
-  Widget _quickActions() => Row(
-    children: [
-      Expanded(
-        child: _quickAction(
-          icon: Icons.add_location_alt_outlined,
-          title: 'Nuevo lugar',
-          subtitle: 'No aparece en el mapa',
-          color: AppColors.primary,
-          onTap: _register,
-        ),
-      ),
-      const SizedBox(width: 10),
-      Expanded(
-        child: _quickAction(
-          icon: Icons.add_photo_alternate_outlined,
-          title: 'Lugar existente',
-          subtitle: 'Añade foto o información',
-          color: AppColors.secondary,
-          onTap: _contributeExisting,
-        ),
-      ),
-    ],
-  );
-
-  Widget _quickAction({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-  }) => Material(
-    color: Colors.transparent,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Ink(
-        height: 102,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE0E9E6)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: .1),
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Icon(icon, color: color, size: 19),
-                ),
-                const Spacer(),
-                const Icon(Icons.arrow_outward_rounded, size: 18),
-              ],
-            ),
-            const Spacer(),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
-            ),
-            Text(
-              subtitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.textLight, fontSize: 9),
-            ),
-          ],
-        ),
-      ),
     ),
   );
 

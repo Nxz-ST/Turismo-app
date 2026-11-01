@@ -315,10 +315,18 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
 
   Future<void> _submitReport() async {
     final name = nameController.text.trim();
+    final description = descriptionController.text.trim();
     final image = selectedImage;
 
     if (name.isEmpty) {
       _showStepMessage('Escribe un nombre para el lugar.');
+      setState(() => _currentStep = 2);
+      return;
+    }
+    if (widget.existingPlace == null && description.length < 20) {
+      _showStepMessage(
+        'Cuéntanos un poco más sobre el lugar (mínimo 20 caracteres).',
+      );
       setState(() => _currentStep = 2);
       return;
     }
@@ -352,7 +360,7 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
       final result = await _reportPlaceService.submitAndProcess(
         imageFile: image,
         nombre: name,
-        descripcion: descriptionController.text.trim(),
+        descripcion: description,
         latitud: _selectedLatitude,
         longitud: _selectedLongitude,
         altitud: _selectedAltitude,
@@ -386,7 +394,7 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
       final title = switch (estado) {
         'candidate' => 'Posible nuevo atractivo turístico',
         'needs_review' => 'Caso enviado a revisión',
-        'duplicate' => 'Lugar posiblemente registrado',
+        'duplicate' => 'Aporte asociado para revisión',
         'rejected' => 'La evidencia no fue aceptada',
         'offline_pending' => 'Aporte guardado sin conexión',
         'pending' ||
@@ -480,7 +488,9 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
           tooltip: 'Cerrar',
         ),
         title: Text(
-          widget.existingPlace == null ? 'Nuevo lugar' : 'Nueva evidencia',
+          widget.existingPlace == null
+              ? 'Aportar un lugar'
+              : 'Aportar evidencia',
           style: const TextStyle(fontWeight: FontWeight.w900),
         ),
         actions: [
@@ -689,10 +699,10 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
     children: [
       _stepIntro(
         widget.existingPlace == null
-            ? 'Ponle nombre al descubrimiento'
+            ? 'Cuéntanos sobre el lugar'
             : 'Cuéntanos sobre tu visita',
         widget.existingPlace == null
-            ? 'Un nombre reconocible ayudará a que otras personas puedan encontrarlo.'
+            ? 'No necesitas saber si ya está registrado. RutaAmiga comparará el nombre, la ubicación y la fotografía.'
             : 'El lugar ya está seleccionado; puedes añadir una descripción breve.',
       ),
       const SizedBox(height: 24),
@@ -707,17 +717,32 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
         icon: Icons.place_outlined,
       ),
       const SizedBox(height: 18),
-      const Text(
-        'Descripción breve · opcional',
-        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+      Text(
+        widget.existingPlace == null
+            ? 'Descripción breve · obligatoria'
+            : 'Descripción breve · opcional',
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
       ),
       const SizedBox(height: 8),
       _inputField(
         controller: descriptionController,
-        hint: '¿Qué viste y cómo fue llegar hasta allí?',
+        hint: '¿Qué viste, qué hace especial al lugar y cómo fue llegar?',
         icon: Icons.notes_rounded,
         maxLines: 5,
       ),
+      if (widget.existingPlace == null) ...[
+        const SizedBox(height: 7),
+        Text(
+          '${descriptionController.text.trim().length}/20 caracteres mínimos',
+          style: TextStyle(
+            color: descriptionController.text.trim().length >= 20
+                ? AppColors.primary
+                : AppColors.textLight,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
       const SizedBox(height: 14),
       const Row(
         children: [
@@ -815,7 +840,7 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
             SizedBox(width: 10),
             Expanded(
               child: Text(
-                'La fotografía, ubicación y fecha se guardarán como evidencia auditable.',
+                'RutaAmiga verificará si es un nuevo descubrimiento o un aporte para un lugar existente. La fotografía, ubicación y fecha quedarán como evidencia auditable.',
                 style: TextStyle(
                   color: AppColors.primaryDark,
                   fontSize: 11,
@@ -942,6 +967,14 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
     }
     if (_currentStep == 2 && nameController.text.trim().isEmpty) {
       _showStepMessage('Escribe un nombre para el lugar.');
+      return;
+    }
+    if (_currentStep == 2 &&
+        widget.existingPlace == null &&
+        descriptionController.text.trim().length < 20) {
+      _showStepMessage(
+        'Cuéntanos un poco más sobre el lugar (mínimo 20 caracteres).',
+      );
       return;
     }
     if (_currentStep < 3) {

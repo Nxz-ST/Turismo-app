@@ -1065,6 +1065,7 @@ class _RouteCard extends StatefulWidget {
 class _RouteCardState extends State<_RouteCard> {
   final GooglePlacesService _photos = GooglePlacesService();
   Future<String?>? _photoFuture;
+  String? _directPhotoUrl;
 
   Map<String, dynamic> get route => widget.route;
 
@@ -1074,9 +1075,12 @@ class _RouteCardState extends State<_RouteCard> {
     final stops = (route['stops'] as List? ?? const []);
     if (widget.featured && stops.isNotEmpty) {
       final stop = Map<String, dynamic>.from(stops.first as Map);
+      _directPhotoUrl = stop['photo_url']?.toString().trim();
       final latitude = (stop['latitude'] as num?)?.toDouble();
       final longitude = (stop['longitude'] as num?)?.toDouble();
-      if (latitude != null && longitude != null) {
+      if ((_directPhotoUrl == null || _directPhotoUrl!.isEmpty) &&
+          latitude != null &&
+          longitude != null) {
         _photoFuture = _photos.getTouristPhotoUrl(
           name: stop['name']?.toString() ?? 'Atractivo turístico',
           lat: latitude,
@@ -1193,7 +1197,10 @@ class _RouteCardState extends State<_RouteCard> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                _metric(Icons.place_outlined, '${stops.length} paradas'),
+                _metric(
+                  Icons.place_outlined,
+                  stops.length == 1 ? '1 destino' : '${stops.length} paradas',
+                ),
                 _metric(Icons.near_me_outlined, '${route['distance_km']} km'),
                 _metric(Icons.schedule, _duration(minutes)),
                 if (route['requires_special_planning'] == true)
@@ -1265,21 +1272,30 @@ class _RouteCardState extends State<_RouteCard> {
     _ => Icons.near_me_outlined,
   };
 
-  Widget _featuredPhoto() => FutureBuilder<String?>(
-    future: _photoFuture,
-    builder: (_, snapshot) {
-      final url = snapshot.data;
-      if (url != null && url.isNotEmpty) {
-        return Image.network(
-          url,
-          headers: _photos.photoHeaders,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _photoFallback(),
-        );
-      }
-      return _photoFallback();
-    },
-  );
+  Widget _featuredPhoto() {
+    if (_directPhotoUrl != null && _directPhotoUrl!.isNotEmpty) {
+      return Image.network(
+        _directPhotoUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _photoFallback(),
+      );
+    }
+    return FutureBuilder<String?>(
+      future: _photoFuture,
+      builder: (_, snapshot) {
+        final url = snapshot.data;
+        if (url != null && url.isNotEmpty) {
+          return Image.network(
+            url,
+            headers: _photos.photoHeaders,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _photoFallback(),
+          );
+        }
+        return _photoFallback();
+      },
+    );
+  }
 
   Widget _photoFallback() => Container(
     decoration: const BoxDecoration(
@@ -1937,7 +1953,7 @@ class _SuggestedRouteDetailScreenState
                               child: SizedBox(
                                 width: 78,
                                 height: 78,
-                                child: _activeStopPhoto(stop!),
+                                child: _stopPhoto(stop!),
                               ),
                             ),
                             const SizedBox(width: 13),
@@ -2151,10 +2167,21 @@ class _SuggestedRouteDetailScreenState
     child: IconButton(tooltip: tooltip, onPressed: onTap, icon: Icon(icon)),
   );
 
-  Widget _activeStopPhoto(Map<String, dynamic> stop) {
+  Widget _stopPhoto(Map<String, dynamic> stop) {
     final name = stop['name']?.toString() ?? 'Parada';
     final latitude = (stop['latitude'] as num).toDouble();
     final longitude = (stop['longitude'] as num).toDouble();
+    final directPhoto = stop['photo_url']?.toString().trim() ?? '';
+    if (directPhoto.isNotEmpty) {
+      return Image.network(
+        directPhoto,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const ColoredBox(
+          color: AppColors.primarySoft,
+          child: Icon(Icons.landscape_rounded, color: AppColors.primary),
+        ),
+      );
+    }
     return FutureBuilder<String?>(
       future: _photos.getTouristPhotoUrl(
         name: name,
@@ -2340,10 +2367,10 @@ class _SuggestedRouteDetailScreenState
       padding: const EdgeInsets.fromLTRB(2, 4, 2, 14),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Text(
-              'Paradas del viaje',
-              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+              total == 1 ? 'Destino del recorrido' : 'Paradas del viaje',
+              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
             ),
           ),
           Text(
@@ -2367,8 +2394,6 @@ class _SuggestedRouteDetailScreenState
     final official = stop['source'] == 'official';
     final completed = index < _nextStopIndex;
     final current = index == _nextStopIndex;
-    final latitude = (stop['latitude'] as num).toDouble();
-    final longitude = (stop['longitude'] as num).toDouble();
     final name = stop['name']?.toString() ?? 'Parada';
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -2448,40 +2473,7 @@ class _SuggestedRouteDetailScreenState
                       child: SizedBox(
                         width: 82,
                         height: 82,
-                        child: FutureBuilder<String?>(
-                          future: _photos.getTouristPhotoUrl(
-                            name: name,
-                            lat: latitude,
-                            lng: longitude,
-                          ),
-                          builder: (_, snapshot) => snapshot.data == null
-                              ? ColoredBox(
-                                  color: official
-                                      ? AppColors.primarySoft
-                                      : const Color(0xFFFFEBD7),
-                                  child: Icon(
-                                    official
-                                        ? Icons.landscape_rounded
-                                        : Icons.explore_rounded,
-                                    color: official
-                                        ? AppColors.primary
-                                        : Colors.orange,
-                                  ),
-                                )
-                              : Image.network(
-                                  snapshot.data!,
-                                  headers: _photos.photoHeaders,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      const ColoredBox(
-                                        color: AppColors.primarySoft,
-                                        child: Icon(
-                                          Icons.landscape_rounded,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                ),
-                        ),
+                        child: _stopPhoto(stop),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -2622,8 +2614,6 @@ class _SuggestedRouteDetailScreenState
       if ((stop['foreigner_fee']?.toString().trim() ?? '').isNotEmpty)
         'Extranjero: ${stop['foreigner_fee']}',
     ].join(' · ');
-    final latitude = (stop['latitude'] as num).toDouble();
-    final longitude = (stop['longitude'] as num).toDouble();
     final hasOfficialVisitInformation =
         official &&
         (entryType.isNotEmpty ||
@@ -2690,42 +2680,7 @@ class _SuggestedRouteDetailScreenState
                       child: SizedBox(
                         width: double.infinity,
                         height: 130,
-                        child: FutureBuilder<String?>(
-                          future: _photos.getTouristPhotoUrl(
-                            name: name,
-                            lat: latitude,
-                            lng: longitude,
-                          ),
-                          builder: (_, snapshot) => snapshot.data == null
-                              ? ColoredBox(
-                                  color: official
-                                      ? AppColors.primarySoft
-                                      : const Color(0xFFFFEBD7),
-                                  child: Icon(
-                                    official
-                                        ? Icons.landscape_rounded
-                                        : Icons.explore_rounded,
-                                    color: official
-                                        ? AppColors.primary
-                                        : Colors.orange,
-                                    size: 38,
-                                  ),
-                                )
-                              : Image.network(
-                                  snapshot.data!,
-                                  headers: _photos.photoHeaders,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
-                                      const ColoredBox(
-                                        color: AppColors.primarySoft,
-                                        child: Icon(
-                                          Icons.landscape_rounded,
-                                          color: AppColors.primary,
-                                          size: 38,
-                                        ),
-                                      ),
-                                ),
-                        ),
+                        child: _stopPhoto(stop),
                       ),
                     ),
                     const SizedBox(height: 14),

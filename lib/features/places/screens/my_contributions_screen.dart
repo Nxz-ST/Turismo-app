@@ -72,9 +72,9 @@ class _MyContributionsScreenState extends State<MyContributionsScreen> {
               icon: Icons.add_location_alt_outlined,
               title: 'Todavía no tienes aportes',
               message:
-                  'Registra un paisaje natural y acompáñalo con una fotografía tomada en el lugar.',
+                  'Comparte un lugar con una fotografía y RutaAmiga verificará si es nuevo o si ya está registrado.',
               action: _register,
-              actionLabel: 'Registrar mi primer lugar',
+              actionLabel: 'Realizar mi primer aporte',
             );
           }
           return RefreshIndicator(
