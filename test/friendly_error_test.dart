@@ -26,6 +26,27 @@ void main() {
     expect(friendlyErrorMessage(error), error.message);
   });
 
+  test('oculta errores internos aunque lleguen como mensaje del backend', () {
+    const error = BackendApiException(
+      'Supabase respondio 400: {"code":"23514","details":"Failing row"}',
+      statusCode: 400,
+    );
+
+    final message = friendlyErrorMessage(error);
+
+    expect(message, isNot(contains('Supabase')));
+    expect(message, isNot(contains('23514')));
+  });
+
+  test('oculta detalles técnicos guardados como motivo de decisión', () {
+    final message = friendlyDecisionReason(
+      'Supabase respondió 400 para bd92fdfb-7699-4fb4-b20a-2811327df448',
+    );
+
+    expect(message, contains('aporte está seguro'));
+    expect(message, isNot(contains('Supabase')));
+  });
+
   test('un error desconocido usa un texto neutral', () {
     final message = friendlyErrorMessage(Exception('detalle interno sensible'));
 

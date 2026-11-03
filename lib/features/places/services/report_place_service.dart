@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../core/network/backend_api_client.dart';
+import '../../../core/errors/friendly_error.dart';
 
 class ReportPlaceService {
   final BackendApiClient _api = BackendApiClient();
@@ -203,9 +204,9 @@ class ReportPlaceService {
                 if (!retryError.isNetworkFailure) ...{
                   'status': 'failed',
                   'sync_status': 'failed',
-                  'decision_reason': retryError.message,
+                  'decision_reason': friendlyErrorMessage(retryError),
                 },
-                'last_sync_error': retryError.message,
+                'last_sync_error': friendlyErrorMessage(retryError),
               });
               if (retryError.isNetworkFailure) {
                 final currentIndex = queue.indexOf(queued);
@@ -220,9 +221,9 @@ class ReportPlaceService {
             if (!error.isNetworkFailure) ...{
               'status': 'failed',
               'sync_status': 'failed',
-              'decision_reason': error.message,
+              'decision_reason': friendlyErrorMessage(error),
             },
-            'last_sync_error': error.message,
+            'last_sync_error': friendlyErrorMessage(error),
           });
           if (error.isNetworkFailure) {
             final currentIndex = queue.indexOf(queued);

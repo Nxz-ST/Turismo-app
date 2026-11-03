@@ -324,7 +324,7 @@ class _ContributionDetailState extends State<_ContributionDetail> {
               ),
               const SizedBox(height: 6),
               Text(
-                item['decision_reason'].toString(),
+                friendlyDecisionReason(item['decision_reason']),
                 style: const TextStyle(color: AppColors.textLight, height: 1.4),
               ),
             ],
@@ -372,6 +372,7 @@ class _UserValidationTimeline extends StatelessWidget {
       'duplicate',
       'validated',
       'rejected',
+      'failed',
     ].contains(status);
     final verificationActive = [
       'processing_ai',

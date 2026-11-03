@@ -9,7 +9,9 @@ String friendlyErrorMessage(
   Object? error, {
   String fallback = 'No pudimos completar la acción. Inténtalo nuevamente.',
 }) {
-  if (error is BackendApiException) return error.message;
+  if (error is BackendApiException) {
+    return _safeFriendlyText(error.message, fallback: fallback);
+  }
   if (error is SocketException ||
       error is TimeoutException ||
       error is http.ClientException) {
@@ -62,4 +64,25 @@ String friendlyErrorMessage(
     return 'Tu sesión expiró. Inicia sesión nuevamente.';
   }
   return fallback;
+}
+
+String friendlyDecisionReason(Object? reason) {
+  return _safeFriendlyText(
+    reason?.toString() ?? '',
+    fallback:
+        'No pudimos completar el análisis automático. Tu aporte está seguro y quedó disponible para reintento o revisión.',
+  );
+}
+
+String _safeFriendlyText(String value, {required String fallback}) {
+  final text = value.trim();
+  if (text.isEmpty ||
+      text.length > 500 ||
+      RegExp(
+        r'(supabase|postgrest|sqlstate|failing row|traceback|stack trace|exception|"code"\s*:|"details"\s*:|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})',
+        caseSensitive: false,
+      ).hasMatch(text)) {
+    return fallback;
+  }
+  return text;
 }

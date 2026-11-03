@@ -375,9 +375,7 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
       if (!mounted) return;
 
       final estado = result['status']?.toString() ?? 'failed';
-      final motivo =
-          result['decision_reason']?.toString() ??
-          'El servidor no devolvió un motivo.';
+      final motivo = friendlyDecisionReason(result['decision_reason']);
       final categoria =
           result['predicted_category']?.toString() ?? 'No determinada';
       final confianza =
