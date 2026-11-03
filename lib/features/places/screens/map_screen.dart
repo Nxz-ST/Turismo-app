@@ -10,6 +10,7 @@ import '../../../core/services/presence_service.dart';
 import '../../../core/widgets/main_navigation_bar.dart';
 import '../../routes/screens/suggested_routes_screen.dart';
 
+import '../models/existing_place_target.dart';
 import '../models/tourist_place_model.dart';
 import '../services/google_places_service.dart';
 import '../services/google_routes_service.dart';
@@ -18,6 +19,7 @@ import '../services/report_place_service.dart';
 import '../services/tourist_place_service.dart';
 import '../widgets/exploration_area_picker.dart';
 import 'community_place_detail_screen.dart';
+import 'register_place_screen.dart';
 import 'tourist_place_detail_screen.dart';
 
 class MapScreen extends StatefulWidget {
@@ -1529,7 +1531,7 @@ class _MapScreenState extends State<MapScreen> {
               ],
             ),
           ),
-          SizedBox(height: 148, child: _resultCarousel()),
+          SizedBox(height: 174, child: _resultCarousel()),
           const Padding(
             padding: EdgeInsets.fromLTRB(20, 20, 20, 8),
             child: Text(
@@ -2303,6 +2305,24 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                         ),
                         const Spacer(),
+                        TextButton.icon(
+                          onPressed: () => _contributeToCommunity(report),
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                          ),
+                          icon: const Icon(
+                            Icons.add_a_photo_outlined,
+                            size: 17,
+                          ),
+                          label: const Text(
+                            'Aportar',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
                         IconButton(
                           tooltip: 'Ver ficha',
                           visualDensity: VisualDensity.compact,
@@ -2315,22 +2335,6 @@ class _MapScreenState extends State<MapScreen> {
                             Icons.arrow_outward_rounded,
                             size: 18,
                             color: Color(0xFF7655A6),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Cerrar',
-                          visualDensity: VisualDensity.compact,
-                          constraints: const BoxConstraints.tightFor(
-                            width: 32,
-                            height: 32,
-                          ),
-                          onPressed: () => setState(() {
-                            selectedReport = null;
-                          }),
-                          icon: const Icon(
-                            Icons.close,
-                            size: 18,
-                            color: AppColors.textLight,
                           ),
                         ),
                       ],
@@ -2356,6 +2360,17 @@ class _MapScreenState extends State<MapScreen> {
       context,
       MaterialPageRoute(
         builder: (_) => CommunityPlaceDetailScreen(initialPlace: report),
+      ),
+    );
+  }
+
+  void _contributeToCommunity(Map<String, dynamic> report) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RegisterPlaceScreen(
+          existingPlace: ExistingPlaceTarget.fromCommunity(report),
+        ),
       ),
     );
   }
