@@ -2219,7 +2219,7 @@ class _SuggestedRouteDetailScreenState
     if (values.isNotEmpty) return values.join(' · ');
     return stop['source'] == 'official'
         ? 'Atractivo oficial MINCETUR'
-        : 'Lugar validado por RutaAmiga';
+        : 'Evidencia corroborada por RutaAmiga';
   }
 
   String _activeDistanceLabel() {
@@ -3648,9 +3648,9 @@ class _SuggestedRouteDetailScreenState
   }
 
   static String _communityLabel(String? status) => switch (status) {
-    'validated' => 'Validado por RutaAmiga',
+    'validated' => 'Corroborado por RutaAmiga',
     'needs_review' => 'En revisión',
-    _ => 'Posible atractivo',
+    _ => 'Posible lugar natural',
   };
 
   static String _travelModeLabel(String mode) => switch (mode) {

@@ -40,7 +40,7 @@ class EvidenceStatusInfo {
         'Candidato',
         Colors.orange,
         Icons.stars_outlined,
-        'Parece un nuevo atractivo y está listo para revisión.',
+        'La evidencia es coherente y está lista para revisión.',
       ),
       'needs_review' => const EvidenceStatusInfo(
         'En revisión',
@@ -58,7 +58,7 @@ class EvidenceStatusInfo {
         'Validado',
         AppColors.primary,
         Icons.verified,
-        'El lugar fue confirmado como atractivo turístico.',
+        'La evidencia coincide con la categoría y ubicación, y superó la revisión de RutaAmiga.',
       ),
       'rejected' => const EvidenceStatusInfo(
         'No aprobado',

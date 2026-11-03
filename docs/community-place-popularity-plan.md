@@ -1,6 +1,7 @@
 # Propuesta: popularidad y evolución de lugares comunitarios
 
-Estado: pendiente de implementación.
+Estado: implementado localmente; pendiente de aplicar la migración 012 en
+Supabase y desplegar backend/app.
 
 ## Objetivo
 
@@ -52,21 +53,23 @@ En el detalle mostrar, por ejemplo:
 Última verificación: hace 3 días
 ```
 
-## Cambios necesarios
+## Implementación realizada
 
 ### Supabase
 
-- Añadir origen `official` o `community` al catálogo canónico.
-- Conservar el vínculo entre evidencia inicial y lugar promovido.
-- Crear una vista/RPC agregada de popularidad por lugar.
-- Contar usuarios únicos para evitar manipulación del contador.
+- La migración `012_community_places_trust_passport.sql` crea el catálogo
+  canónico `community_places` y recupera evidencias validadas anteriores.
+- Conserva la evidencia inicial y vincula aportes posteriores al mismo lugar.
+- El respaldo se calcula con usuarios únicos de evidencias aprobadas y visitas
+  GPS verificadas; no existe un contador editable.
 
 ### Backend
 
-- Promover un nuevo lugar cuando complete la aprobación requerida.
-- Permitir que `existing_place` apunte también a lugares comunitarios.
-- Devolver métricas de popularidad en catálogo, cercanos y detalle.
-- Mantener auditoría de evidencias y visitas que sustentan cada métrica.
+- Promueve un nuevo lugar cuando completa la aprobación administrativa.
+- `existing_place` puede apuntar a un lugar oficial o comunitario.
+- Devuelve un Pasaporte de confianza con aportantes, visitantes, personas
+  independientes, actualidad y condiciones recientes.
+- Consolida duplicados aprobados en la ficha canónica existente.
 
 ### Panel administrativo
 
@@ -76,10 +79,12 @@ En el detalle mostrar, por ejemplo:
 
 ### Flutter
 
-- Incluir lugares comunitarios aprobados en **Lugar existente**.
-- Mostrar marcadores con contador y nivel de popularidad.
-- Mostrar desglose de visitantes, aportantes y última verificación.
-- Mantener diferenciados los marcadores individuales y los clústeres.
+- Incluye lugares comunitarios aprobados en **Lugar existente**.
+- Muestra el respaldo en las listas del mapa y en la ficha comunitaria.
+- Muestra desglose de visitantes, aportantes y última verificación mediante el
+  Pasaporte de confianza.
+- Los marcadores conservan su diferenciación respecto de los clústeres; el
+  marcador numérico personalizado queda como mejora visual posterior.
 
 ## Criterios de aceptación
 

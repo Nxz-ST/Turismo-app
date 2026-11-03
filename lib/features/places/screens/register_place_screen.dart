@@ -15,13 +15,13 @@ import '../../../core/errors/friendly_error.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/presence_service.dart';
 import '../services/report_place_service.dart';
-import '../models/tourist_place_model.dart';
+import '../models/existing_place_target.dart';
 import '../widgets/place_profile_questionnaire.dart';
 
 class RegisterPlaceScreen extends StatefulWidget {
   const RegisterPlaceScreen({super.key, this.existingPlace});
 
-  final TouristPlaceModel? existingPlace;
+  final ExistingPlaceTarget? existingPlace;
 
   @override
   State<RegisterPlaceScreen> createState() => _RegisterPlaceScreenState();
@@ -62,9 +62,9 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
   void initState() {
     super.initState();
     if (widget.existingPlace != null) {
-      nameController.text = widget.existingPlace!.nombre;
+      nameController.text = widget.existingPlace!.name;
       descriptionController.text =
-          'Evidencia adicional para ${widget.existingPlace!.nombre}';
+          'Evidencia adicional para ${widget.existingPlace!.name}';
     }
     _countdownTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted) setState(() {});
@@ -364,7 +364,12 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
             : 'gallery',
         capturedAt: selectedCapturedAt ?? DateTime.now(),
         presenceSampleId: selectedPresenceSample?['id']?.toString(),
-        targetPlaceId: widget.existingPlace?.id,
+        targetPlaceId: widget.existingPlace?.isCommunity == true
+            ? null
+            : int.tryParse(widget.existingPlace?.id ?? ''),
+        targetCommunityPlaceId: widget.existingPlace?.isCommunity == true
+            ? widget.existingPlace?.id
+            : null,
       );
 
       if (!mounted) return;

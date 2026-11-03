@@ -84,7 +84,7 @@ class WelcomeScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'Descubre rutas auténticas, navega con apoyo local y ayuda a validar nuevos atractivos naturales.',
+                    'Descubre rutas auténticas, navega con apoyo local y ayuda a documentar posibles lugares naturales.',
                     style: TextStyle(
                       color: Colors.white70,
                       height: 1.5,

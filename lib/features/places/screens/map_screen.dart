@@ -17,6 +17,7 @@ import '../services/exploration_context_service.dart';
 import '../services/report_place_service.dart';
 import '../services/tourist_place_service.dart';
 import '../widgets/exploration_area_picker.dart';
+import 'community_place_detail_screen.dart';
 import 'tourist_place_detail_screen.dart';
 
 class MapScreen extends StatefulWidget {
@@ -537,7 +538,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   String _reportedStatusLabel(String? status) => switch (status) {
-    'validated' => 'Atractivo validado por RutaAmiga',
+    'validated' => 'Evidencia corroborada por RutaAmiga',
     'candidate' => 'Candidato de la comunidad',
     'needs_review' => 'En revisión humana',
     _ => 'Aporte de la comunidad',
@@ -1368,7 +1369,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   String get _resultsTitle => switch (selectedLayer) {
-    'rutaamiga' => 'Descubrimientos validados',
+    'rutaamiga' => 'Descubrimientos corroborados',
     'oficiales' => 'Atractivos oficiales',
     'restaurant' => 'Dónde comer',
     'lodging' => 'Dónde dormir',
@@ -1926,7 +1927,7 @@ class _MapScreenState extends State<MapScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'VALIDADO POR RUTAAMIGA',
+                    'CORROBORADO POR RUTAAMIGA',
                     style: TextStyle(
                       color: Color(0xFF7655A6),
                       fontSize: 8,
@@ -1952,10 +1953,26 @@ class _MapScreenState extends State<MapScreen> {
                       fontSize: 10,
                     ),
                   ),
+                  if (_communitySupporters(report) > 0)
+                    Text(
+                      '${_communitySupporters(report)} personas respaldan esta ficha',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                 ],
               ),
             ),
-            const Icon(Icons.location_on_outlined, color: Color(0xFF7655A6)),
+            IconButton(
+              tooltip: 'Ver ficha comunitaria',
+              onPressed: () => _openCommunityDetail(report),
+              icon: const Icon(
+                Icons.arrow_outward_rounded,
+                color: Color(0xFF7655A6),
+              ),
+            ),
           ],
         ),
       ),
@@ -2127,7 +2144,7 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                       const SizedBox(height: 5),
                       const Text(
-                        'Validado por RutaAmiga',
+                        'Corroborado por RutaAmiga',
                         style: TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w700,
@@ -2220,7 +2237,7 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                         SizedBox(width: 4),
                         Text(
-                          'Validado por RutaAmiga',
+                          'Corroborado por RutaAmiga',
                           style: TextStyle(
                             color: Color(0xFF7655A6),
                             fontWeight: FontWeight.bold,
@@ -2286,13 +2303,31 @@ class _MapScreenState extends State<MapScreen> {
                           ),
                         ),
                         const Spacer(),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              selectedReport = null;
-                            });
-                          },
-                          child: const Icon(
+                        IconButton(
+                          tooltip: 'Ver ficha',
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 32,
+                            height: 32,
+                          ),
+                          onPressed: () => _openCommunityDetail(report),
+                          icon: const Icon(
+                            Icons.arrow_outward_rounded,
+                            size: 18,
+                            color: Color(0xFF7655A6),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Cerrar',
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 32,
+                            height: 32,
+                          ),
+                          onPressed: () => setState(() {
+                            selectedReport = null;
+                          }),
+                          icon: const Icon(
                             Icons.close,
                             size: 18,
                             color: AppColors.textLight,
@@ -2307,6 +2342,21 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  int _communitySupporters(Map<String, dynamic> report) {
+    final trust = report['trust'];
+    if (trust is! Map) return 0;
+    return int.tryParse(trust['independent_supporters']?.toString() ?? '') ?? 0;
+  }
+
+  void _openCommunityDetail(Map<String, dynamic> report) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CommunityPlaceDetailScreen(initialPlace: report),
+      ),
     );
   }
 

@@ -8,6 +8,7 @@ import '../../profile/services/travel_library_service.dart';
 import '../models/tourist_place_model.dart';
 import '../services/google_places_service.dart';
 import '../services/weather_service.dart';
+import '../widgets/place_trust_passport_card.dart';
 import 'map_screen.dart';
 
 class TouristPlaceDetailScreen extends StatelessWidget {
@@ -105,6 +106,11 @@ class TouristPlaceDetailScreen extends StatelessWidget {
                 _primaryAction(context),
                 const SizedBox(height: 24),
                 _facts(),
+                const SizedBox(height: 14),
+                PlaceTrustPassportCard(
+                  source: 'official',
+                  placeId: place.id.toString(),
+                ),
                 const SizedBox(height: 14),
                 _WeatherSafetyCard(place: place),
                 const SizedBox(height: 30),

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/location_service.dart';
+import '../models/existing_place_target.dart';
 import '../models/tourist_place_model.dart';
+import '../services/report_place_service.dart';
 import '../services/tourist_place_service.dart';
 import 'register_place_screen.dart';
 
@@ -16,8 +18,9 @@ class SelectExistingPlaceScreen extends StatefulWidget {
 
 class _SelectExistingPlaceScreenState extends State<SelectExistingPlaceScreen> {
   final _service = TouristPlaceService();
+  final _reportService = ReportPlaceService();
   final _search = TextEditingController();
-  late Future<List<TouristPlaceModel>> _future;
+  late Future<List<ExistingPlaceTarget>> _future;
   String _query = '';
 
   @override
@@ -32,14 +35,32 @@ class _SelectExistingPlaceScreenState extends State<SelectExistingPlaceScreen> {
     super.dispose();
   }
 
-  Future<List<TouristPlaceModel>> _load() async {
+  Future<List<ExistingPlaceTarget>> _load() async {
     final position = await LocationService.getCurrentLocation();
-    final rows = await _service.obtenerLugaresCercanos(
+    final officialFuture = _service.obtenerLugaresCercanos(
       latitud: position.latitude,
       longitud: position.longitude,
       radio: 50000,
     );
-    return rows.map(TouristPlaceModel.fromSupabase).toList();
+    final communityFuture = _reportService
+        .obtenerReportesCercanos(
+          latitud: position.latitude,
+          longitud: position.longitude,
+          radio: 50000,
+        )
+        .catchError((_) => <Map<String, dynamic>>[]);
+    final results = await Future.wait([officialFuture, communityFuture]);
+    final official = results[0]
+        .map(
+          (row) => ExistingPlaceTarget.fromOfficial(
+            TouristPlaceModel.fromSupabase(row),
+          ),
+        )
+        .toList();
+    final community = results[1]
+        .map(ExistingPlaceTarget.fromCommunity)
+        .toList();
+    return [...community, ...official];
   }
 
   @override
@@ -69,7 +90,7 @@ class _SelectExistingPlaceScreenState extends State<SelectExistingPlaceScreen> {
           ),
         ),
         Expanded(
-          child: FutureBuilder<List<TouristPlaceModel>>(
+          child: FutureBuilder<List<ExistingPlaceTarget>>(
             future: _future,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -84,7 +105,7 @@ class _SelectExistingPlaceScreenState extends State<SelectExistingPlaceScreen> {
                   .where(
                     (place) =>
                         _query.isEmpty ||
-                        '${place.nombre} ${place.distrito} ${place.provincia}'
+                        '${place.name} ${place.district} ${place.province}'
                             .toLowerCase()
                             .contains(_query),
                   )
@@ -106,19 +127,27 @@ class _SelectExistingPlaceScreenState extends State<SelectExistingPlaceScreen> {
                         horizontal: 14,
                         vertical: 7,
                       ),
-                      leading: const CircleAvatar(
-                        backgroundColor: AppColors.primarySoft,
+                      leading: CircleAvatar(
+                        backgroundColor: place.isCommunity
+                            ? const Color(0xFFF0E8F6)
+                            : AppColors.primarySoft,
                         child: Icon(
-                          Icons.verified_outlined,
-                          color: AppColors.primary,
+                          place.isCommunity
+                              ? Icons.people_alt_outlined
+                              : Icons.verified_outlined,
+                          color: place.isCommunity
+                              ? const Color(0xFF7655A6)
+                              : AppColors.primary,
                         ),
                       ),
                       title: Text(
-                        place.nombre,
+                        place.name,
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                       subtitle: Text(
-                        '${place.distrito}, ${place.provincia}',
+                        place.isCommunity
+                            ? 'Descubrimiento comunitario · ${place.category}'
+                            : '${place.district}, ${place.province}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),

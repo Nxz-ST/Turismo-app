@@ -32,6 +32,7 @@ class ReportPlaceService {
     required DateTime capturedAt,
     String? presenceSampleId,
     int? targetPlaceId,
+    String? targetCommunityPlaceId,
   }) async {
     final clientEvidenceId = const Uuid().v4();
     final filename = path.basename(imageFile.path);
@@ -51,10 +52,13 @@ class ReportPlaceService {
       'captured_at': capturedAt.toUtc().toIso8601String(),
       'content_hash': contentHash.toString(),
       if (presenceSampleId != null) 'presence_sample_id': presenceSampleId,
-      'contribution_type': targetPlaceId == null
+      'contribution_type':
+          targetPlaceId == null && targetCommunityPlaceId == null
           ? 'new_place'
           : 'existing_place',
       if (targetPlaceId != null) 'target_place_id': targetPlaceId,
+      if (targetCommunityPlaceId != null)
+        'target_community_place_id': targetCommunityPlaceId,
     };
 
     final connectivity = await Connectivity().checkConnectivity();
@@ -283,10 +287,18 @@ class ReportPlaceService {
     required double longitud,
     double radio = 10000,
   }) async {
-    final response = await _api.get(
-      '/evidences/nearby',
-      query: {'latitude': latitud, 'longitude': longitud, 'radius': radio},
-    );
+    final query = {'latitude': latitud, 'longitude': longitud, 'radius': radio};
+    dynamic response;
+    try {
+      response = await _api.get('/places/community/nearby', query: query);
+    } on BackendApiException catch (error) {
+      if (error.statusCode != 404 &&
+          error.statusCode != 502 &&
+          error.statusCode != 503) {
+        rethrow;
+      }
+      response = await _api.get('/evidences/nearby', query: query);
+    }
     return (response as List)
         .map((item) => Map<String, dynamic>.from(item as Map))
         .toList();
