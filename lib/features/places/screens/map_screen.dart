@@ -1884,18 +1884,8 @@ class _MapScreenState extends State<MapScreen> {
 
   Widget _communityResultTile(Map<String, dynamic> report) {
     final photo = report['foto_url']?.toString();
-    final lat = double.tryParse(report['latitud'].toString()) ?? 0;
-    final lng = double.tryParse(report['longitud'].toString()) ?? 0;
     return InkWell(
-      onTap: () {
-        setState(() {
-          _listMode = false;
-          selectedReport = report;
-        });
-        mapController?.animateCamera(
-          CameraUpdate.newLatLngZoom(LatLng(lat, lng), 15),
-        );
-      },
+      onTap: () => _openCommunityDetail(report),
       borderRadius: BorderRadius.circular(18),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
@@ -2188,161 +2178,170 @@ class _MapScreenState extends State<MapScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       scrollDirection: Axis.horizontal,
       children: [
-        Container(
-          width: 340,
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: AppColors.white,
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _openCommunityDetail(report),
             borderRadius: BorderRadius.circular(24),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 92,
-                height: 110,
-                decoration: BoxDecoration(
-                  color: Colors.purple.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: fotoUrl == null || fotoUrl.isEmpty
-                    ? const Icon(
-                        Icons.image_outlined,
-                        color: Colors.purple,
-                        size: 38,
-                      )
-                    : Image.network(
-                        fotoUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) {
-                          return const Icon(
+            child: Ink(
+              width: 340,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 92,
+                    height: 110,
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: fotoUrl == null || fotoUrl.isEmpty
+                        ? const Icon(
                             Icons.image_outlined,
                             color: Colors.purple,
                             size: 38,
-                          );
-                        },
-                      ),
-              ),
+                          )
+                        : Image.network(
+                            fotoUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) {
+                              return const Icon(
+                                Icons.image_outlined,
+                                color: Colors.purple,
+                                size: 38,
+                              );
+                            },
+                          ),
+                  ),
 
-              const SizedBox(width: 14),
+                  const SizedBox(width: 14),
 
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Row(
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.verified_rounded,
-                          color: Color(0xFF7655A6),
-                          size: 16,
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.verified_rounded,
+                              color: Color(0xFF7655A6),
+                              size: 16,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Corroborado por RutaAmiga',
+                              style: TextStyle(
+                                color: Color(0xFF7655A6),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(width: 4),
+
+                        const SizedBox(height: 4),
+
                         Text(
-                          'Corroborado por RutaAmiga',
-                          style: TextStyle(
-                            color: Color(0xFF7655A6),
+                          nombre,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            fontSize: 11,
+                            color: AppColors.textDark,
                           ),
                         ),
-                      ],
-                    ),
 
-                    const SizedBox(height: 4),
+                        const SizedBox(height: 4),
 
-                    Text(
-                      nombre,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    Text(
-                      descripcion,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: AppColors.textLight,
-                        fontSize: 12,
-                      ),
-                    ),
-
-                    const Spacer(),
-
-                    Text(
-                      categoria,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textLight,
-                      ),
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.near_me,
-                          size: 15,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: 4),
                         Text(
-                          '${distance.toStringAsFixed(1)} km',
+                          descripcion,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w600,
+                            color: AppColors.textLight,
                             fontSize: 12,
                           ),
                         ),
+
                         const Spacer(),
-                        TextButton.icon(
-                          onPressed: () => _contributeToCommunity(report),
-                          style: TextButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                          ),
-                          icon: const Icon(
-                            Icons.add_a_photo_outlined,
-                            size: 17,
-                          ),
-                          label: const Text(
-                            'Aportar',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                            ),
+
+                        Text(
+                          categoria,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textLight,
                           ),
                         ),
-                        IconButton(
-                          tooltip: 'Ver ficha',
-                          visualDensity: VisualDensity.compact,
-                          constraints: const BoxConstraints.tightFor(
-                            width: 32,
-                            height: 32,
-                          ),
-                          onPressed: () => _openCommunityDetail(report),
-                          icon: const Icon(
-                            Icons.arrow_outward_rounded,
-                            size: 18,
-                            color: Color(0xFF7655A6),
-                          ),
+
+                        const SizedBox(height: 4),
+
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.near_me,
+                              size: 15,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${distance.toStringAsFixed(1)} km',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const Spacer(),
+                            TextButton.icon(
+                              onPressed: () => _contributeToCommunity(report),
+                              style: TextButton.styleFrom(
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                ),
+                              ),
+                              icon: const Icon(
+                                Icons.add_a_photo_outlined,
+                                size: 17,
+                              ),
+                              label: const Text(
+                                'Aportar',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: 'Ver ficha',
+                              visualDensity: VisualDensity.compact,
+                              constraints: const BoxConstraints.tightFor(
+                                width: 32,
+                                height: 32,
+                              ),
+                              onPressed: () => _openCommunityDetail(report),
+                              icon: const Icon(
+                                Icons.arrow_outward_rounded,
+                                size: 18,
+                                color: Color(0xFF7655A6),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ],
