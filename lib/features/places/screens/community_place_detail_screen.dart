@@ -78,22 +78,15 @@ class _CommunityPlaceDetailScreenState
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 10),
-                  Text(
-                    _description(place),
-                    style: const TextStyle(
-                      color: AppColors.textLight,
-                      fontSize: 15,
-                      height: 1.6,
-                    ),
-                  ),
-                  if (_updates(place).isNotEmpty) ...[
+                  _communityInformation(place),
+                  if (_updates(place).length > 1) ...[
                     const SizedBox(height: 22),
                     Text(
-                      'Información aportada en campo',
+                      'Actualizaciones anteriores',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 10),
-                    for (final update in _updates(place).take(3))
+                    for (final update in _updates(place).skip(1).take(2))
                       _CommunityUpdateCard(update: update),
                   ],
                   const SizedBox(height: 24),
@@ -232,6 +225,24 @@ class _CommunityPlaceDetailScreenState
         : value;
   }
 
+  Widget _communityInformation(Map<String, dynamic> place) {
+    final updates = _updates(place);
+    if (updates.isNotEmpty && updates.first['answers'] is Map) {
+      return _CommunityProfileCard(
+        answers: Map<String, dynamic>.from(updates.first['answers'] as Map),
+        reportedAt: updates.first['reported_at']?.toString(),
+      );
+    }
+    return Text(
+      _description(place),
+      style: const TextStyle(
+        color: AppColors.textLight,
+        fontSize: 15,
+        height: 1.6,
+      ),
+    );
+  }
+
   List<String> _photos(Map<String, dynamic> place) {
     final values = <String>{};
     final primary = place['foto_url']?.toString().trim() ?? '';
@@ -274,28 +285,265 @@ class _CommunityUpdateCard extends StatelessWidget {
   final Map<String, dynamic> update;
 
   @override
+  Widget build(BuildContext context) {
+    final answers = update['answers'];
+    if (answers is Map) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 9),
+        child: _CommunityProfileCard(
+          answers: Map<String, dynamic>.from(answers),
+          reportedAt: update['reported_at']?.toString(),
+          compact: true,
+        ),
+      );
+    }
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 9),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE4EBE8)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.fact_check_outlined, color: AppColors.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              update['description']?.toString() ?? '',
+              style: const TextStyle(
+                color: AppColors.textLight,
+                fontSize: 12,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CommunityProfileCard extends StatelessWidget {
+  const _CommunityProfileCard({
+    required this.answers,
+    this.reportedAt,
+    this.compact = false,
+  });
+
+  final Map<String, dynamic> answers;
+  final String? reportedAt;
+  final bool compact;
+
+  static const _access = {
+    'walking': 'A pie',
+    'vehicle': 'En vehículo',
+    'public_transport': 'Transporte público',
+    'mixed': 'Acceso mixto',
+    'unknown': 'Sin confirmar',
+  };
+  static const _difficulty = {
+    'easy': 'Fácil',
+    'moderate': 'Moderada',
+    'difficult': 'Difícil',
+    'unknown': 'Sin confirmar',
+  };
+  static const _cost = {
+    'free': 'Gratuito',
+    'paid': 'Pagado',
+    'unknown': 'Sin confirmar',
+  };
+  static const _state = {
+    'open': 'Abierto',
+    'restricted': 'Restringido',
+    'closed': 'Cerrado',
+    'unknown': 'Sin confirmar',
+  };
+  static const _activities = {
+    'photography': 'Fotografía',
+    'walking': 'Caminata',
+    'swimming': 'Baño',
+    'nature': 'Naturaleza',
+    'culture': 'Cultura',
+    'adventure': 'Aventura',
+    'relaxation': 'Descanso',
+  };
+  static const _services = {
+    'restrooms': 'Baños',
+    'parking': 'Estacionamiento',
+    'food': 'Alimentación',
+    'guide': 'Guía',
+    'signage': 'Señalización',
+    'none_observed': 'Ninguno observado',
+  };
+  static const _risks = {
+    'difficult_access': 'Acceso complicado',
+    'slippery_surface': 'Piso resbaladizo',
+    'strong_current': 'Corriente fuerte',
+    'steep_drop': 'Desnivel',
+    'low_signal': 'Poca señal',
+    'none_observed': 'Ninguna observada',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final facts = <({IconData icon, String label, String value})>[
+      (
+        icon: Icons.directions_walk_rounded,
+        label: 'Acceso',
+        value: _single('access_type', _access),
+      ),
+      (
+        icon: Icons.terrain_outlined,
+        label: 'Dificultad',
+        value: _single('access_difficulty', _difficulty),
+      ),
+      (
+        icon: Icons.payments_outlined,
+        label: 'Ingreso',
+        value: _single('cost_type', _cost),
+      ),
+      (
+        icon: Icons.door_front_door_outlined,
+        label: 'Estado',
+        value: _single('place_state', _state),
+      ),
+      if (_multiple('activities', _activities) != null)
+        (
+          icon: Icons.local_activity_outlined,
+          label: 'Actividades',
+          value: _multiple('activities', _activities)!,
+        ),
+      if (_multiple('services', _services) != null)
+        (
+          icon: Icons.room_service_outlined,
+          label: 'Servicios',
+          value: _multiple('services', _services)!,
+        ),
+      if (_multiple('risks', _risks) != null)
+        (
+          icon: Icons.health_and_safety_outlined,
+          label: 'Precauciones',
+          value: _multiple('risks', _risks)!,
+        ),
+    ];
+    return Container(
+      padding: EdgeInsets.all(compact ? 12 : 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE4EBE8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!compact) ...[
+            const Row(
+              children: [
+                Icon(Icons.fact_check_outlined, color: AppColors.primary),
+                SizedBox(width: 8),
+                Text(
+                  'Datos observados en campo',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = (constraints.maxWidth - 9) / 2;
+              return Wrap(
+                spacing: 9,
+                runSpacing: 9,
+                children: [
+                  for (final fact in facts)
+                    SizedBox(
+                      width: width,
+                      child: _ProfileFact(
+                        icon: fact.icon,
+                        label: fact.label,
+                        value: fact.value,
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          if (reportedAt != null) ...[
+            const SizedBox(height: 11),
+            const Text(
+              'Información declarada por visitantes y sujeta a confirmación.',
+              style: TextStyle(
+                color: AppColors.textLight,
+                fontSize: 9,
+                height: 1.35,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _single(String key, Map<String, String> labels) =>
+      labels[answers[key]?.toString()] ?? 'Sin confirmar';
+
+  String? _multiple(String key, Map<String, String> labels) {
+    final values = answers[key];
+    if (values is! List || values.isEmpty) return null;
+    final resolved = values
+        .map((value) => labels[value.toString()])
+        .whereType<String>()
+        .toList();
+    return resolved.isEmpty ? null : resolved.join(', ');
+  }
+}
+
+class _ProfileFact extends StatelessWidget {
+  const _ProfileFact({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
   Widget build(BuildContext context) => Container(
-    width: double.infinity,
-    margin: const EdgeInsets.only(bottom: 9),
-    padding: const EdgeInsets.all(14),
+    constraints: const BoxConstraints(minHeight: 78),
+    padding: const EdgeInsets.all(11),
     decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: const Color(0xFFE4EBE8)),
+      color: AppColors.primarySoft,
+      borderRadius: BorderRadius.circular(14),
     ),
-    child: Row(
+    child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(Icons.fact_check_outlined, color: AppColors.primary),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            update['description']?.toString() ?? '',
-            style: const TextStyle(
-              color: AppColors.textLight,
-              fontSize: 12,
-              height: 1.45,
-            ),
+        Icon(icon, color: AppColors.primary, size: 19),
+        const SizedBox(height: 7),
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            color: AppColors.textLight,
+            fontSize: 8,
+            letterSpacing: .5,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: const TextStyle(
+            color: AppColors.primaryDark,
+            fontSize: 11,
+            height: 1.25,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],
