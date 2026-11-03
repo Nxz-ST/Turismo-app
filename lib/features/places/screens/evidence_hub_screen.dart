@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -25,7 +26,10 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
   Map<String, dynamic>? _presence;
   bool _loading = true;
   bool _completingProfile = false;
+  bool _profileDialogOpen = false;
   String? _error;
+  Timer? _validationPoller;
+  final Set<String> _autoPromptedEvidenceIds = {};
 
   bool _profileCompleted(Map<String, dynamic> item) {
     final events = (item['processing_events'] as List? ?? const []);
@@ -37,15 +41,24 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
     );
   }
 
+  Map<String, dynamic>? get _incompleteProfileItem {
+    for (final item in _items) {
+      final status = item['status']?.toString();
+      if (status != 'candidate' && status != 'validated') continue;
+      if (item['id']?.toString().startsWith('local-') == true) continue;
+      if (!_profileCompleted(item)) return item;
+    }
+    return null;
+  }
+
   Map<String, dynamic>? get _profileItem {
+    final incomplete = _incompleteProfileItem;
+    if (incomplete != null) return incomplete;
     Map<String, dynamic>? completed;
     for (final item in _items) {
       final status = item['status']?.toString();
       if (status != 'candidate' && status != 'validated') continue;
       if (item['id']?.toString().startsWith('local-') == true) continue;
-      if (!_profileCompleted(item)) {
-        return item;
-      }
       completed ??= item;
     }
     return completed;
@@ -69,10 +82,26 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
   void initState() {
     super.initState();
     _reload();
+    _validationPoller = Timer.periodic(const Duration(seconds: 12), (_) {
+      if (_items.any((item) {
+        final status = item['status']?.toString();
+        return status == 'pending' ||
+            status == 'processing_ai' ||
+            status == 'processing_gis';
+      })) {
+        _reload(showLoading: false);
+      }
+    });
   }
 
-  Future<void> _reload() async {
-    if (mounted) setState(() => _loading = true);
+  @override
+  void dispose() {
+    _validationPoller?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _reload({bool showLoading = true}) async {
+    if (mounted && showLoading) setState(() => _loading = true);
     try {
       final results = await Future.wait<dynamic>([
         _service.obtenerMisAportes(limit: 20),
@@ -88,13 +117,30 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
         _loading = false;
         _error = null;
       });
+      _scheduleAutomaticProfile();
     } catch (error) {
       if (!mounted) return;
+      if (!showLoading) return;
       setState(() {
         _loading = false;
         _error = friendlyErrorMessage(error);
       });
     }
+  }
+
+  void _scheduleAutomaticProfile() {
+    final item = _incompleteProfileItem;
+    final id = item?['id']?.toString();
+    if (item == null ||
+        id == null ||
+        _profileDialogOpen ||
+        _autoPromptedEvidenceIds.contains(id)) {
+      return;
+    }
+    _autoPromptedEvidenceIds.add(id);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _openProfileForm(item);
+    });
   }
 
   Future<void> _register() async {
@@ -105,21 +151,28 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
     if (mounted) await _reload();
   }
 
-  Future<void> _openProfileForm() async {
-    final item = _profileItem;
-    if (item == null || _completingProfile) return;
+  Future<void> _openProfileForm([Map<String, dynamic>? selectedItem]) async {
+    final item = selectedItem ?? _profileItem;
+    if (item == null || _completingProfile || _profileDialogOpen) return;
     final snapshot = Map<String, dynamic>.from(
       item['target_place_snapshot'] as Map? ?? const {},
     );
-    final answers = await showPlaceProfileQuestionnaire(
-      context,
-      existingPlace: item['contribution_type']?.toString() == 'existing_place',
-      placeName:
-          snapshot['nombre']?.toString() ??
-          item['name']?.toString() ??
-          'este lugar',
-      initialAnswers: _latestProfileAnswers(item),
-    );
+    _profileDialogOpen = true;
+    final Map<String, dynamic>? answers;
+    try {
+      answers = await showPlaceProfileQuestionnaire(
+        context,
+        existingPlace:
+            item['contribution_type']?.toString() == 'existing_place',
+        placeName:
+            snapshot['nombre']?.toString() ??
+            item['name']?.toString() ??
+            'este lugar',
+        initialAnswers: _latestProfileAnswers(item),
+      );
+    } finally {
+      _profileDialogOpen = false;
+    }
     if (answers == null || !mounted) return;
     setState(() => _completingProfile = true);
     try {
@@ -148,7 +201,7 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
       bottomNavigationBar: const MainNavigationBar(currentIndex: 3),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: _reload,
+          onRefresh: () => _reload(),
           child: CustomScrollView(
             slivers: [
               SliverPadding(
