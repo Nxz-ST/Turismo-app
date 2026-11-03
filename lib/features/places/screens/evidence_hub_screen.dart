@@ -27,19 +27,39 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
   bool _completingProfile = false;
   String? _error;
 
-  Map<String, dynamic>? get _pendingProfile {
+  bool _profileCompleted(Map<String, dynamic> item) {
+    final events = (item['processing_events'] as List? ?? const []);
+    return events.any(
+      (event) =>
+          event is Map &&
+          event['stage']?.toString() == 'community_profile' &&
+          event['status']?.toString() == 'completed',
+    );
+  }
+
+  Map<String, dynamic>? get _profileItem {
+    Map<String, dynamic>? completed;
     for (final item in _items) {
       final status = item['status']?.toString();
       if (status != 'candidate' && status != 'validated') continue;
-      final events = (item['processing_events'] as List? ?? const []);
-      final completed = events.any(
-        (event) =>
-            event is Map &&
-            event['stage']?.toString() == 'community_profile' &&
-            event['status']?.toString() == 'completed',
-      );
-      if (!completed && item['id']?.toString().startsWith('local-') != true) {
+      if (item['id']?.toString().startsWith('local-') == true) continue;
+      if (!_profileCompleted(item)) {
         return item;
+      }
+      completed ??= item;
+    }
+    return completed;
+  }
+
+  Map<String, dynamic>? _latestProfileAnswers(Map<String, dynamic> item) {
+    final events = (item['processing_events'] as List? ?? const []).reversed;
+    for (final event in events) {
+      if (event is! Map || event['stage']?.toString() != 'community_profile') {
+        continue;
+      }
+      final metadata = event['metadata'];
+      if (metadata is Map && metadata['answers'] is Map) {
+        return Map<String, dynamic>.from(metadata['answers'] as Map);
       }
     }
     return null;
@@ -85,8 +105,8 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
     if (mounted) await _reload();
   }
 
-  Future<void> _completePendingProfile() async {
-    final item = _pendingProfile;
+  Future<void> _openProfileForm() async {
+    final item = _profileItem;
     if (item == null || _completingProfile) return;
     final snapshot = Map<String, dynamic>.from(
       item['target_place_snapshot'] as Map? ?? const {},
@@ -98,6 +118,7 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
           snapshot['nombre']?.toString() ??
           item['name']?.toString() ??
           'este lugar',
+      initialAnswers: _latestProfileAnswers(item),
     );
     if (answers == null || !mounted) return;
     setState(() => _completingProfile = true);
@@ -143,7 +164,7 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                   sliver: SliverToBoxAdapter(child: _presenceReminder()),
                 ),
-              if (_pendingProfile != null)
+              if (_profileItem != null)
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                   sliver: SliverToBoxAdapter(child: _profileReminder()),
@@ -372,7 +393,8 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
   }
 
   Widget _profileReminder() {
-    final item = _pendingProfile!;
+    final item = _profileItem!;
+    final completed = _profileCompleted(item);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -400,9 +422,11 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Tu lugar fue validado',
-                  style: TextStyle(
+                Text(
+                  completed
+                      ? 'Sigue enriqueciendo este lugar'
+                      : 'Tu lugar fue validado',
+                  style: const TextStyle(
                     color: AppColors.primaryDark,
                     fontSize: 15,
                     fontWeight: FontWeight.w900,
@@ -410,7 +434,9 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Completa la información de ${item['name'] ?? 'tu aporte'} para mejorar su ficha.',
+                  completed
+                      ? 'La información de ${item['name'] ?? 'tu aporte'} ya fue guardada. Puedes actualizarla si observas cambios.'
+                      : 'Completa la información de ${item['name'] ?? 'tu aporte'} para mejorar su ficha.',
                   style: const TextStyle(
                     color: AppColors.textLight,
                     fontSize: 11,
@@ -419,9 +445,7 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
                 ),
                 const SizedBox(height: 10),
                 FilledButton.icon(
-                  onPressed: _completingProfile
-                      ? null
-                      : _completePendingProfile,
+                  onPressed: _completingProfile ? null : _openProfileForm,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(0, 38),
                     padding: const EdgeInsets.symmetric(horizontal: 13),
@@ -436,9 +460,11 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
                           ),
                         )
                       : const Icon(Icons.edit_note_rounded, size: 18),
-                  label: const Text(
-                    'Completar información',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                  label: Text(
+                    completed
+                        ? 'Actualizar información'
+                        : 'Completar información',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
               ],

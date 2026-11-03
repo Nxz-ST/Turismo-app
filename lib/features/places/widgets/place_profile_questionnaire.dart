@@ -6,6 +6,7 @@ Future<Map<String, dynamic>?> showPlaceProfileQuestionnaire(
   BuildContext context, {
   required bool existingPlace,
   String? placeName,
+  Map<String, dynamic>? initialAnswers,
 }) => showModalBottomSheet<Map<String, dynamic>>(
   context: context,
   isScrollControlled: true,
@@ -16,6 +17,7 @@ Future<Map<String, dynamic>?> showPlaceProfileQuestionnaire(
   builder: (_) => _PlaceProfileQuestionnaire(
     existingPlace: existingPlace,
     placeName: placeName,
+    initialAnswers: initialAnswers,
   ),
 );
 
@@ -23,10 +25,12 @@ class _PlaceProfileQuestionnaire extends StatefulWidget {
   const _PlaceProfileQuestionnaire({
     required this.existingPlace,
     this.placeName,
+    this.initialAnswers,
   });
 
   final bool existingPlace;
   final String? placeName;
+  final Map<String, dynamic>? initialAnswers;
 
   @override
   State<_PlaceProfileQuestionnaire> createState() =>
@@ -42,6 +46,24 @@ class _PlaceProfileQuestionnaireState
   final activities = <String>{};
   final services = <String>{};
   final risks = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    final answers = widget.initialAnswers;
+    if (answers == null) return;
+    accessType = answers['access_type']?.toString() ?? accessType;
+    costType = answers['cost_type']?.toString() ?? costType;
+    accessDifficulty =
+        answers['access_difficulty']?.toString() ?? accessDifficulty;
+    placeState = answers['place_state']?.toString() ?? placeState;
+    activities.addAll(_stringValues(answers['activities']));
+    services.addAll(_stringValues(answers['services']));
+    risks.addAll(_stringValues(answers['risks']));
+  }
+
+  Iterable<String> _stringValues(dynamic values) =>
+      values is List ? values.map((value) => value.toString()) : const [];
 
   @override
   Widget build(BuildContext context) => Padding(
