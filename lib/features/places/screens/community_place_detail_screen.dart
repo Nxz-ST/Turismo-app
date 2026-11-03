@@ -79,16 +79,6 @@ class _CommunityPlaceDetailScreenState
                   ),
                   const SizedBox(height: 10),
                   _communityInformation(place),
-                  if (_updates(place).length > 1) ...[
-                    const SizedBox(height: 22),
-                    Text(
-                      'Actualizaciones anteriores',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 10),
-                    for (final update in _updates(place).skip(1).take(2))
-                      _CommunityUpdateCard(update: update),
-                  ],
                   const SizedBox(height: 24),
                   _location(place),
                   const SizedBox(height: 18),
@@ -226,11 +216,14 @@ class _CommunityPlaceDetailScreenState
   }
 
   Widget _communityInformation(Map<String, dynamic> place) {
-    final updates = _updates(place);
-    if (updates.isNotEmpty && updates.first['answers'] is Map) {
+    final profiles = _updates(place)
+        .where((update) => update['answers'] is Map)
+        .map((update) => Map<String, dynamic>.from(update['answers'] as Map))
+        .toList();
+    if (profiles.isNotEmpty) {
       return _CommunityProfileCard(
-        answers: Map<String, dynamic>.from(updates.first['answers'] as Map),
-        reportedAt: updates.first['reported_at']?.toString(),
+        answers: _aggregateProfiles(profiles),
+        reportCount: profiles.length,
       );
     }
     return Text(
@@ -241,6 +234,44 @@ class _CommunityPlaceDetailScreenState
         height: 1.6,
       ),
     );
+  }
+
+  Map<String, dynamic> _aggregateProfiles(List<Map<String, dynamic>> profiles) {
+    final result = <String, dynamic>{};
+    const singleKeys = {
+      'access_type',
+      'access_difficulty',
+      'cost_type',
+      'place_state',
+    };
+    const multipleKeys = {'activities', 'services', 'risks'};
+
+    for (final key in singleKeys) {
+      final values = <String>{};
+      for (final profile in profiles) {
+        final value = profile[key]?.toString().trim() ?? '';
+        if (value.isNotEmpty) values.add(value);
+      }
+      if (values.length > 1) values.remove('unknown');
+      if (values.isNotEmpty) result[key] = values.toList();
+    }
+
+    for (final key in multipleKeys) {
+      final values = <String>{};
+      for (final profile in profiles) {
+        final raw = profile[key];
+        if (raw is List) {
+          values.addAll(
+            raw
+                .map((value) => value.toString().trim())
+                .where((value) => value.isNotEmpty),
+          );
+        }
+      }
+      if (values.length > 1) values.remove('none_observed');
+      if (values.isNotEmpty) result[key] = values.toList();
+    }
+    return result;
   }
 
   List<String> _photos(Map<String, dynamic> place) {
@@ -279,64 +310,14 @@ class _CommunityPlaceDetailScreenState
   }
 }
 
-class _CommunityUpdateCard extends StatelessWidget {
-  const _CommunityUpdateCard({required this.update});
-
-  final Map<String, dynamic> update;
-
-  @override
-  Widget build(BuildContext context) {
-    final answers = update['answers'];
-    if (answers is Map) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 9),
-        child: _CommunityProfileCard(
-          answers: Map<String, dynamic>.from(answers),
-          reportedAt: update['reported_at']?.toString(),
-          compact: true,
-        ),
-      );
-    }
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 9),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE4EBE8)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(Icons.fact_check_outlined, color: AppColors.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              update['description']?.toString() ?? '',
-              style: const TextStyle(
-                color: AppColors.textLight,
-                fontSize: 12,
-                height: 1.45,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _CommunityProfileCard extends StatelessWidget {
   const _CommunityProfileCard({
     required this.answers,
-    this.reportedAt,
-    this.compact = false,
+    required this.reportCount,
   });
 
   final Map<String, dynamic> answers;
-  final String? reportedAt;
-  final bool compact;
+  final int reportCount;
 
   static const _access = {
     'walking': 'A pie',
@@ -431,7 +412,7 @@ class _CommunityProfileCard extends StatelessWidget {
         ),
     ];
     return Container(
-      padding: EdgeInsets.all(compact ? 12 : 15),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -440,19 +421,21 @@ class _CommunityProfileCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!compact) ...[
-            const Row(
-              children: [
-                Icon(Icons.fact_check_outlined, color: AppColors.primary),
-                SizedBox(width: 8),
-                Text(
-                  'Datos observados en campo',
-                  style: TextStyle(fontWeight: FontWeight.w900),
+          Row(
+            children: [
+              const Icon(Icons.fact_check_outlined, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  reportCount == 1
+                      ? 'Datos observados en campo'
+                      : 'Resumen de $reportCount aportes de campo',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-          ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
               final width = (constraints.maxWidth - 9) / 2;
@@ -473,24 +456,32 @@ class _CommunityProfileCard extends StatelessWidget {
               );
             },
           ),
-          if (reportedAt != null) ...[
-            const SizedBox(height: 11),
-            const Text(
-              'Información declarada por visitantes y sujeta a confirmación.',
-              style: TextStyle(
-                color: AppColors.textLight,
-                fontSize: 9,
-                height: 1.35,
-              ),
+          const SizedBox(height: 11),
+          Text(
+            reportCount == 1
+                ? 'Información declarada por un visitante y sujeta a confirmación.'
+                : 'Información consolidada de $reportCount aportes. Los valores distintos se muestran juntos y siguen sujetos a confirmación.',
+            style: const TextStyle(
+              color: AppColors.textLight,
+              fontSize: 9,
+              height: 1.35,
             ),
-          ],
+          ),
         ],
       ),
     );
   }
 
-  String _single(String key, Map<String, String> labels) =>
-      labels[answers[key]?.toString()] ?? 'Sin confirmar';
+  String _single(String key, Map<String, String> labels) {
+    final raw = answers[key];
+    final values = raw is List ? raw : [raw];
+    final resolved = values
+        .map((value) => labels[value?.toString()])
+        .whereType<String>()
+        .toSet()
+        .toList();
+    return resolved.isEmpty ? 'Sin confirmar' : resolved.join(' / ');
+  }
 
   String? _multiple(String key, Map<String, String> labels) {
     final values = answers[key];
