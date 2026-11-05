@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -21,6 +22,7 @@ class CommunityPlaceDetailScreen extends StatefulWidget {
 class _CommunityPlaceDetailScreenState
     extends State<CommunityPlaceDetailScreen> {
   late final String _placeId = widget.initialPlace['id'].toString();
+  int _heroIndex = 0;
   late final Future<Map<String, dynamic>> _future = PlaceTrustService()
       .getCommunityPlace(_placeId)
       .catchError((_) => widget.initialPlace);
@@ -43,6 +45,11 @@ class _CommunityPlaceDetailScreenState
                 place['nombre']?.toString() ?? 'Descubrimiento',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+              ),
+              titleTextStyle: const TextStyle(
+                color: Colors.white,
+                fontSize: 17,
+                fontWeight: FontWeight.w900,
               ),
               flexibleSpace: FlexibleSpaceBar(background: _hero(place)),
             ),
@@ -102,13 +109,50 @@ class _CommunityPlaceDetailScreenState
   Widget _hero(Map<String, dynamic> place) {
     final photos = _photos(place);
     if (photos.isEmpty) return _heroFallback();
-    return PageView.builder(
-      itemCount: photos.length,
-      itemBuilder: (_, index) => Image.network(
-        photos[index],
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _heroFallback(),
-      ),
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        PageView.builder(
+          itemCount: photos.length,
+          onPageChanged: (index) => setState(() => _heroIndex = index),
+          itemBuilder: (_, index) => Image.network(
+            photos[index],
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _heroFallback(),
+          ),
+        ),
+        if (photos.length > 1)
+          Positioned(
+            right: 14,
+            bottom: 14,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .62),
+                borderRadius: BorderRadius.circular(99),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.photo_library_outlined,
+                    size: 14,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    '${_heroIndex + 1}/${photos.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -153,7 +197,10 @@ class _CommunityPlaceDetailScreenState
     children: [
       Expanded(
         child: FilledButton.icon(
-          onPressed: () => _openDirections(place),
+          onPressed: () {
+            HapticFeedback.selectionClick();
+            _openDirections(place);
+          },
           icon: const Icon(Icons.directions_outlined),
           label: const Text('Cómo llegar'),
         ),
@@ -161,14 +208,17 @@ class _CommunityPlaceDetailScreenState
       const SizedBox(width: 10),
       Expanded(
         child: OutlinedButton.icon(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => RegisterPlaceScreen(
-                existingPlace: ExistingPlaceTarget.fromCommunity(place),
+          onPressed: () {
+            HapticFeedback.selectionClick();
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => RegisterPlaceScreen(
+                  existingPlace: ExistingPlaceTarget.fromCommunity(place),
+                ),
               ),
-            ),
-          ),
+            );
+          },
           icon: const Icon(Icons.add_a_photo_outlined),
           label: const Text('Aportar'),
         ),

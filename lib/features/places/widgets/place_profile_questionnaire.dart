@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../core/constants/app_colors.dart';
 
@@ -285,13 +286,16 @@ class _PlaceProfileQuestionnaireState
     ),
   );
 
-  void _submit() => Navigator.pop(context, {
-    'access_type': accessType,
-    'cost_type': costType,
-    'access_difficulty': accessDifficulty,
-    'place_state': placeState,
-    'activities': activities.toList(),
-    'services': services.toList(),
-    'risks': risks.toList(),
-  });
+  void _submit() {
+    HapticFeedback.mediumImpact();
+    Navigator.pop(context, {
+      'access_type': accessType,
+      'cost_type': costType,
+      'access_difficulty': accessDifficulty,
+      'place_state': placeState,
+      'activities': activities.toList(),
+      'services': services.toList(),
+      'risks': risks.toList(),
+    });
+  }
 }

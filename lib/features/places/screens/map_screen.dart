@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -333,12 +334,7 @@ class _MapScreenState extends State<MapScreen> {
               report['estado_validacion']?.toString(),
             ),
           ),
-          onTap: () {
-            setState(() {
-              selectedLayer = 'rutaamiga';
-              selectedReport = report;
-            });
-          },
+          onTap: () => _selectReportedPlace(report),
         );
       }).toSet();
 
@@ -460,7 +456,7 @@ class _MapScreenState extends State<MapScreen> {
                   report['estado_validacion']?.toString(),
                 ),
               ),
-              onTap: () => setState(() => selectedReport = report),
+              onTap: () => _selectReportedPlace(report),
             ),
           )
           .toSet();
@@ -1702,6 +1698,7 @@ class _MapScreenState extends State<MapScreen> {
     Map<String, dynamic> place, {
     bool moveCamera = true,
   }) {
+    HapticFeedback.selectionClick();
     final id = place['id']?.toString();
     final index = servicePlaces.indexWhere(
       (item) => item['id']?.toString() == id,
@@ -1734,6 +1731,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   void _selectTouristPlace(TouristPlaceModel place) {
+    HapticFeedback.selectionClick();
     final index = _filteredOfficialPlaces.indexWhere(
       (item) => item.id == place.id,
     );
@@ -1757,6 +1755,32 @@ class _MapScreenState extends State<MapScreen> {
       if (!_resultsSheetController.isAttached) return;
       _resultsSheetController.animateTo(
         .34,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
+
+  void _selectReportedPlace(Map<String, dynamic> report) {
+    final lat = double.tryParse(report['latitud']?.toString() ?? '');
+    final lng = double.tryParse(report['longitud']?.toString() ?? '');
+    if (lat == null || lng == null) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      _listMode = false;
+      selectedLayer = 'rutaamiga';
+      selectedReport = report;
+      _selectedTouristId = null;
+      _selectedServiceId = null;
+    });
+    mapController?.animateCamera(
+      CameraUpdate.newLatLngZoom(LatLng(lat, lng), 15),
+    );
+    unawaited(_drawRouteTo(destinationLat: lat, destinationLng: lng));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_resultsSheetController.isAttached) return;
+      _resultsSheetController.animateTo(
+        .38,
         duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
       );
@@ -2092,14 +2116,7 @@ class _MapScreenState extends State<MapScreen> {
       itemBuilder: (_, index) {
         final report = discoveries[index];
         return InkWell(
-          onTap: () {
-            final lat = double.tryParse(report['latitud'].toString()) ?? 0;
-            final lng = double.tryParse(report['longitud'].toString()) ?? 0;
-            setState(() => selectedReport = report);
-            mapController?.animateCamera(
-              CameraUpdate.newLatLngZoom(LatLng(lat, lng), 15),
-            );
-          },
+          onTap: () => _selectReportedPlace(report),
           borderRadius: BorderRadius.circular(20),
           child: Ink(
             width: 286,

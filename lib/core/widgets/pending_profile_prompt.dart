@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../errors/friendly_error.dart';
 import '../../features/places/services/report_place_service.dart';
+import '../../features/places/screens/evidence_hub_screen.dart';
 import '../../features/places/widgets/place_profile_questionnaire.dart';
 
 /// Muestra el cuestionario apenas una contribución alcanza el estado validado.
@@ -57,6 +59,8 @@ class _PendingProfilePromptState extends State<PendingProfilePrompt>
 
   Future<void> _check() async {
     if (!mounted || _checking || _showing) return;
+    final route = ModalRoute.of(context);
+    if (route != null && !route.isCurrent) return;
     _checking = true;
     try {
       final items = await _service.obtenerMisAportes(limit: 20);
@@ -103,13 +107,39 @@ class _PendingProfilePromptState extends State<PendingProfilePrompt>
       if (answers == null || !mounted) return;
       await _service.completeProfile(evidenceId: id, answers: answers);
       if (!mounted) return;
-      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Información guardada. La ficha del lugar ya fue actualizada.',
+      HapticFeedback.mediumImpact();
+      final openContributions = await showDialog<bool>(
+        context: context,
+        useRootNavigator: true,
+        builder: (dialogContext) => AlertDialog(
+          icon: const Icon(
+            Icons.verified_rounded,
+            color: Color(0xFF15856B),
+            size: 42,
           ),
+          title: const Text('¡Tu descubrimiento está completo!'),
+          content: Text(
+            'La información de ${item['name'] ?? 'este lugar'} ya forma parte de su ficha comunitaria.',
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Seguir explorando'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Ver mis aportes'),
+            ),
+          ],
         ),
       );
+      if (openContributions == true && mounted) {
+        await Navigator.of(
+          context,
+          rootNavigator: true,
+        ).push(MaterialPageRoute(builder: (_) => const EvidenceHubScreen()));
+      }
     } catch (error) {
       _promptedEvidenceIds.remove(id);
       if (!mounted) return;

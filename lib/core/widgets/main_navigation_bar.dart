@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../features/home/screens/home_screen.dart';
 import '../../features/places/screens/evidence_hub_screen.dart';
@@ -6,6 +7,7 @@ import '../../features/places/screens/map_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/routes/screens/suggested_routes_screen.dart';
 import '../constants/app_colors.dart';
+import 'pending_profile_prompt.dart';
 import 'presence_lifecycle.dart';
 
 class MainNavigationBar extends StatelessWidget {
@@ -15,6 +17,7 @@ class MainNavigationBar extends StatelessWidget {
 
   void _open(BuildContext context, int index) {
     if (index == currentIndex) return;
+    HapticFeedback.selectionClick();
     final target = switch (index) {
       0 => const HomeScreen(),
       1 => const MapScreen(),
@@ -25,7 +28,8 @@ class MainNavigationBar extends StatelessWidget {
     Navigator.pushAndRemoveUntil(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => PresenceLifecycle(child: target),
+        pageBuilder: (_, __, ___) =>
+            PresenceLifecycle(child: PendingProfilePrompt(child: target)),
         transitionDuration: const Duration(milliseconds: 180),
         transitionsBuilder: (_, animation, __, child) =>
             FadeTransition(opacity: animation, child: child),

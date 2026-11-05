@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -8,6 +9,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/network/backend_api_client.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/presence_service.dart';
+import '../../../core/widgets/first_run_guide.dart';
 import '../../../core/widgets/main_navigation_bar.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../places/models/tourist_place_model.dart';
@@ -45,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic>? _communityDiscovery;
   Map<String, dynamic>? _weather;
   Map<String, dynamic>? _presence;
+  Map<String, dynamic>? _latestContribution;
   bool _loading = true;
   String? _message;
 
@@ -57,6 +60,9 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) setState(() {});
     });
     _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(showFirstRunGuideIfNeeded(context));
+    });
   }
 
   @override
@@ -110,6 +116,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _weatherService
             .forecast(latitude: latitude, longitude: longitude)
             .catchError((_) => <String, dynamic>{}),
+        _reports
+            .obtenerMisAportes(limit: 10)
+            .catchError((_) => <Map<String, dynamic>>[]),
       ]);
       final placesData = results[0] as List<Map<String, dynamic>>;
       final presence = results[1] as List<Map<String, dynamic>>;
@@ -117,6 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
           .where(_isPublicDiscovery)
           .toList();
       final weather = results[3] as Map<String, dynamic>;
+      final contributions = results[4] as List<Map<String, dynamic>>;
       if (!mounted) return;
       setState(() {
         _exploreLatitude = latitude;
@@ -129,6 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _presence = presence.firstOrNull;
         _communityDiscovery = discoveries.firstOrNull;
         _weather = weather.isEmpty ? null : weather;
+        _latestContribution = contributions.firstOrNull;
         _loading = false;
         _message = null;
       });
@@ -206,13 +217,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
+              if (!_loading && _activeRoute.route == null)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                  sliver: SliverToBoxAdapter(child: _nextActionCard()),
+                ),
               if (_loading)
-                const SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 360,
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                )
+                const SliverToBoxAdapter(child: _HomeLoadingSkeleton())
               else if (_places.isEmpty)
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 26, 20, 0),
@@ -1032,6 +1043,183 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
 
+  bool _profileCompleted(Map<String, dynamic> item) {
+    final events = item['processing_events'] as List? ?? const [];
+    return events.any((event) {
+      if (event is! Map || event['status']?.toString() != 'completed') {
+        return false;
+      }
+      final metadata = event['metadata'];
+      return event['stage']?.toString() == 'community_profile' ||
+          (metadata is Map &&
+              metadata['event_type']?.toString() == 'community_profile');
+    });
+  }
+
+  Widget _nextActionCard() {
+    final contribution = _latestContribution;
+    final status = contribution?['status']?.toString();
+    late final IconData icon;
+    late final Color accent;
+    late final String eyebrow;
+    late final String title;
+    late final String description;
+    late final String actionLabel;
+    late final VoidCallback action;
+
+    if (contribution != null &&
+        status == 'validated' &&
+        !_profileCompleted(contribution)) {
+      icon = Icons.fact_check_outlined;
+      accent = const Color(0xFF9A5A00);
+      eyebrow = 'TU DESCUBRIMIENTO FUE VALIDADO';
+      title = 'Completa la ficha del lugar';
+      description =
+          'Responde unas preguntas breves para que otras personas sepan cómo llegar y qué encontrar.';
+      actionLabel = 'Completar ahora';
+      action = () => _openAndReload(const EvidenceHubScreen());
+    } else if (contribution != null &&
+        const {'pending', 'processing_ai', 'processing_gis'}.contains(status)) {
+      icon = Icons.auto_awesome_rounded;
+      accent = const Color(0xFF2874A6);
+      eyebrow = 'VALIDACIÓN EN CURSO';
+      title = 'Estamos comprobando tu aporte';
+      description =
+          'Puedes seguir explorando. El resultado aparecerá automáticamente cuando esté listo.';
+      actionLabel = 'Ver progreso';
+      action = () => _openAndReload(const EvidenceHubScreen());
+    } else if (contribution != null &&
+        const {'candidate', 'needs_review'}.contains(status)) {
+      icon = Icons.rate_review_outlined;
+      accent = const Color(0xFF9A6800);
+      eyebrow = 'REVISIÓN FINAL';
+      title = 'Tu aporte está cerca de publicarse';
+      description =
+          'La evidencia ya fue analizada y ahora espera la confirmación final de un revisor.';
+      actionLabel = 'Ver estado';
+      action = () => _openAndReload(const EvidenceHubScreen());
+    } else if (contribution != null && status == 'duplicate') {
+      icon = Icons.collections_bookmark_outlined;
+      accent = const Color(0xFF7655A6);
+      eyebrow = 'APORTE CONSOLIDADO';
+      title = 'Tu fotografía reforzó una ficha existente';
+      description =
+          'La evidencia quedó asociada al lugar correcto y aumenta su respaldo comunitario.';
+      actionLabel = 'Ver mis aportes';
+      action = () => _openAndReload(const EvidenceHubScreen());
+    } else if (_presenceRemaining != null) {
+      icon = Icons.add_a_photo_outlined;
+      accent = AppColors.primary;
+      eyebrow = 'VISITA ACTIVA';
+      title = '¿Encontraste algo interesante?';
+      description =
+          'Tu ubicación reciente puede respaldar una fotografía tomada desde el lugar.';
+      actionLabel = 'Realizar aporte';
+      action = () => _openAndReload(const EvidenceHubScreen());
+    } else if (_communityDiscovery != null) {
+      icon = Icons.people_alt_outlined;
+      accent = const Color(0xFF7655A6);
+      eyebrow = 'CERCA DE TI';
+      title = 'Explora un descubrimiento comunitario';
+      description =
+          'Conoce un lugar corroborado por viajeros o aporta una nueva perspectiva desde campo.';
+      actionLabel = 'Ver descubrimientos';
+      action = () => _open(const MapScreen(initialLayer: 'rutaamiga'));
+    } else {
+      icon = Icons.route_outlined;
+      accent = AppColors.primary;
+      eyebrow = 'IDEA PARA HOY';
+      title = 'Planifica una salida a tu medida';
+      description =
+          'Indica cuánto tiempo tienes y RutaAmiga buscará un recorrido compatible.';
+      actionLabel = 'Crear una ruta';
+      action = () => _open(const SuggestedRoutesScreen());
+    }
+
+    return Semantics(
+      button: true,
+      label: '$title. $actionLabel',
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            action();
+          },
+          borderRadius: BorderRadius.circular(22),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: accent.withValues(alpha: .18)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: .11),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, color: accent),
+                ),
+                const SizedBox(width: 13),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        eyebrow,
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 8,
+                          letterSpacing: .8,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: AppColors.primaryDark,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textLight,
+                          fontSize: 10,
+                          height: 1.3,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      Text(
+                        actionLabel,
+                        style: TextStyle(
+                          color: accent,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_rounded, color: accent),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _nearbyEssentials() {
     const items = [
       (Icons.restaurant_outlined, 'Comer', 'restaurant'),
@@ -1188,6 +1376,50 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _open(Widget screen) =>
       Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+
+  Future<void> _openAndReload(Widget screen) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+    if (mounted) await _load();
+  }
+}
+
+class _HomeLoadingSkeleton extends StatelessWidget {
+  const _HomeLoadingSkeleton();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 22, 20, 0),
+    child: Column(
+      children: [
+        _box(height: 326, radius: 28),
+        const SizedBox(height: 22),
+        Row(
+          children: [
+            Expanded(child: _box(height: 150, radius: 22)),
+            const SizedBox(width: 12),
+            Expanded(child: _box(height: 150, radius: 22)),
+          ],
+        ),
+      ],
+    ),
+  );
+
+  Widget _box({required double height, required double radius}) =>
+      TweenAnimationBuilder<double>(
+        tween: Tween(begin: .55, end: 1),
+        duration: const Duration(milliseconds: 900),
+        curve: Curves.easeInOut,
+        builder: (_, opacity, __) => Opacity(
+          opacity: opacity,
+          child: Container(
+            height: height,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE7EDE9),
+              borderRadius: BorderRadius.circular(radius),
+            ),
+          ),
+        ),
+      );
 }
 
 class _NearbyPlaceSearchDelegate extends SearchDelegate<TouristPlaceModel?> {

@@ -19,10 +19,10 @@ class EvidenceStatusInfo {
         'El aporte está guardado en tu dispositivo y se enviará cuando recuperes internet.',
       ),
       'pending' => const EvidenceStatusInfo(
-        'Pendiente',
+        'Enviado',
         Colors.blueGrey,
         Icons.schedule,
-        'La evidencia está esperando ser procesada.',
+        'Recibimos la fotografía y comenzaremos a comprobarla en breve.',
       ),
       'processing_ai' => const EvidenceStatusInfo(
         'Analizando',
@@ -37,10 +37,10 @@ class EvidenceStatusInfo {
         'Se están contrastando las señales geoespaciales.',
       ),
       'candidate' => const EvidenceStatusInfo(
-        'Candidato',
+        'Listo para revisión',
         Colors.orange,
         Icons.stars_outlined,
-        'La evidencia es coherente y está lista para revisión.',
+        'La fotografía y la ubicación son coherentes; falta la confirmación final.',
       ),
       'needs_review' => const EvidenceStatusInfo(
         'En revisión',
@@ -55,10 +55,10 @@ class EvidenceStatusInfo {
         'La evidencia se guardó y coincide con un lugar registrado previamente.',
       ),
       'validated' => const EvidenceStatusInfo(
-        'Validado',
+        'Lugar validado',
         AppColors.primary,
         Icons.verified,
-        'La evidencia coincide con la categoría y ubicación, y superó la revisión de RutaAmiga.',
+        'El lugar ya forma parte del mapa y puede recibir nuevos aportes de la comunidad.',
       ),
       'rejected' => const EvidenceStatusInfo(
         'No aprobado',
