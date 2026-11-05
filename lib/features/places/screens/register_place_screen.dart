@@ -447,7 +447,7 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
       }
 
       if (!mounted) return;
-      if (accepted) {
+      if (estado == 'validated') {
         final contributionType =
             result['contribution_type']?.toString() ?? 'new_place';
         final snapshot = Map<String, dynamic>.from(

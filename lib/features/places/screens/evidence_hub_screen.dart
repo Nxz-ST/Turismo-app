@@ -29,7 +29,6 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
   bool _profileDialogOpen = false;
   String? _error;
   Timer? _validationPoller;
-  final Set<String> _autoPromptedEvidenceIds = {};
 
   bool _profileCompleted(Map<String, dynamic> item) {
     final events = (item['processing_events'] as List? ?? const []);
@@ -117,7 +116,6 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
         _loading = false;
         _error = null;
       });
-      _scheduleAutomaticProfile();
     } catch (error) {
       if (!mounted) return;
       if (!showLoading) return;
@@ -126,21 +124,6 @@ class _EvidenceHubScreenState extends State<EvidenceHubScreen> {
         _error = friendlyErrorMessage(error);
       });
     }
-  }
-
-  void _scheduleAutomaticProfile() {
-    final item = _incompleteProfileItem;
-    final id = item?['id']?.toString();
-    if (item == null ||
-        id == null ||
-        _profileDialogOpen ||
-        _autoPromptedEvidenceIds.contains(id)) {
-      return;
-    }
-    _autoPromptedEvidenceIds.add(id);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _openProfileForm(item);
-    });
   }
 
   Future<void> _register() async {

@@ -7,8 +7,10 @@ Future<Map<String, dynamic>?> showPlaceProfileQuestionnaire(
   required bool existingPlace,
   String? placeName,
   Map<String, dynamic>? initialAnswers,
+  bool useRootNavigator = false,
 }) => showModalBottomSheet<Map<String, dynamic>>(
   context: context,
+  useRootNavigator: useRootNavigator,
   isScrollControlled: true,
   useSafeArea: true,
   showDragHandle: true,

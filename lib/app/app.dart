@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
+import '../core/widgets/pending_profile_prompt.dart';
 import '../core/widgets/presence_lifecycle.dart';
 import '../features/auth/screens/welcome_screen.dart';
 import '../features/home/screens/home_screen.dart';
@@ -20,7 +21,9 @@ class RutaAmigaApp extends StatelessWidget {
           initialHome ??
           (Supabase.instance.client.auth.currentSession == null
               ? const WelcomeScreen()
-              : const PresenceLifecycle(child: HomeScreen())),
+              : const PresenceLifecycle(
+                  child: PendingProfilePrompt(child: HomeScreen()),
+                )),
     );
   }
 }
