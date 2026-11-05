@@ -885,14 +885,14 @@ class _MapScreenState extends State<MapScreen> {
                                         : widget.routePlaces != null
                                         ? '${nearbyPlaces.length} paradas del recorrido'
                                         : selectedLayer == 'turisticos'
-                                        ? nearbyPlaces.isEmpty
+                                        ? _resultCount == 0
                                               ? 'No hay lugares en esta zona'
                                               : ExplorationContextService
                                                         .instance
                                                         .area ==
                                                     null
-                                              ? '${nearbyPlaces.length} lugares cerca de ti'
-                                              : '${ExplorationContextService.instance.area!.name} · ${nearbyPlaces.length} lugares'
+                                              ? '$_resultCount lugares cerca de ti'
+                                              : '${ExplorationContextService.instance.area!.name} · $_resultCount lugares'
                                         : servicePlaces.isEmpty
                                         ? _layerTitle()
                                         : '${servicePlaces.length} ${_layerTitle().toLowerCase()}',
@@ -1360,7 +1360,11 @@ class _MapScreenState extends State<MapScreen> {
     if (selectedLayer == 'rutaamiga') {
       return reportedPlaces.where(_isPublicReport).length;
     }
-    if (selectedLayer == 'turisticos' || selectedLayer == 'oficiales') {
+    if (selectedLayer == 'turisticos') {
+      return _filteredOfficialPlaces.length +
+          reportedPlaces.where(_isPublicReport).length;
+    }
+    if (selectedLayer == 'oficiales') {
       return _filteredOfficialPlaces.length;
     }
     return servicePlaces.length;
@@ -1550,7 +1554,10 @@ class _MapScreenState extends State<MapScreen> {
     if (selectedReport != null) {
       return _buildReportedPlaceCard(selectedReport!);
     }
-    if (selectedLayer == 'turisticos' || selectedLayer == 'oficiales') {
+    if (selectedLayer == 'turisticos') {
+      return _buildAllPlaceCards();
+    }
+    if (selectedLayer == 'oficiales') {
       return _buildTouristCards();
     }
     if (selectedLayer == 'rutaamiga') return _buildDiscoveryCards();
@@ -1566,7 +1573,16 @@ class _MapScreenState extends State<MapScreen> {
         ),
       ];
     }
-    if (selectedLayer == 'turisticos' || selectedLayer == 'oficiales') {
+    if (selectedLayer == 'turisticos') {
+      return [
+        ..._filteredOfficialPlaces.take(20).map(_officialResultTile),
+        ...reportedPlaces
+            .where(_isPublicReport)
+            .take(20)
+            .map(_communityResultTile),
+      ];
+    }
+    if (selectedLayer == 'oficiales') {
       return _filteredOfficialPlaces.take(20).map(_officialResultTile).toList();
     }
     if (selectedLayer == 'rutaamiga') {
@@ -1768,7 +1784,9 @@ class _MapScreenState extends State<MapScreen> {
     HapticFeedback.selectionClick();
     setState(() {
       _listMode = false;
-      selectedLayer = 'rutaamiga';
+      // Si el usuario está explorando "Todos", seleccionar un descubrimiento
+      // no debe cambiarle el filtro ni ocultar los atractivos oficiales.
+      if (selectedLayer != 'turisticos') selectedLayer = 'rutaamiga';
       selectedReport = report;
       _selectedTouristId = null;
       _selectedServiceId = null;
@@ -2072,6 +2090,37 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  Widget _buildAllPlaceCards() {
+    final official = _filteredOfficialPlaces;
+    final community = reportedPlaces.where(_isPublicReport).toList();
+    if (official.isEmpty && community.isEmpty) {
+      return _emptyCard(
+        'No encontramos lugares en esta zona. Prueba ampliando la distancia.',
+      );
+    }
+    return ListView.separated(
+      controller: _carouselController,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      scrollDirection: Axis.horizontal,
+      itemCount: official.length + community.length,
+      separatorBuilder: (_, __) => const SizedBox(width: 14),
+      itemBuilder: (_, index) {
+        if (index < official.length) {
+          final place = official[index];
+          return _touristPlaceCard(
+            place,
+            _googlePlacesService.getTouristPhotoUrl(
+              name: place.nombre,
+              lat: place.latitud,
+              lng: place.longitud,
+            ),
+          );
+        }
+        return _communityPlaceCard(community[index - official.length]);
+      },
+    );
+  }
+
   Widget _buildTouristCards() {
     final places = _filteredOfficialPlaces;
     if (places.isEmpty) {
@@ -2112,71 +2161,29 @@ class _MapScreenState extends State<MapScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       scrollDirection: Axis.horizontal,
       itemCount: discoveries.length,
-      separatorBuilder: (_, __) => const SizedBox(width: 12),
-      itemBuilder: (_, index) {
-        final report = discoveries[index];
-        return InkWell(
-          onTap: () => _selectReportedPlace(report),
-          borderRadius: BorderRadius.circular(20),
-          child: Ink(
-            width: 286,
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1EAF8),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(Icons.explore, color: Color(0xFF7655A6)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        report['nombre']?.toString() ?? 'Descubrimiento',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      const Text(
-                        'Corroborado por RutaAmiga',
-                        style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.chevron_right),
-              ],
-            ),
-          ),
-        );
-      },
+      separatorBuilder: (_, __) => const SizedBox(width: 14),
+      itemBuilder: (_, index) => _communityPlaceCard(discoveries[index]),
     );
   }
 
   Widget _buildReportedPlaceCard(Map<String, dynamic> report) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      scrollDirection: Axis.horizontal,
+      children: [_communityPlaceCard(report, width: 340)],
+    );
+  }
+
+  Widget _communityPlaceCard(
+    Map<String, dynamic> report, {
+    double width = 320,
+  }) {
     final fotoUrl = report['foto_url']?.toString();
     final nombre = report['nombre']?.toString() ?? 'Lugar reportado';
     final descripcion =
-        report['descripcion']?.toString() ?? 'Sin descripción registrada.';
+        report['descripcion']?.toString().trim().isNotEmpty == true
+        ? report['descripcion'].toString()
+        : 'Información comunitaria en proceso de enriquecimiento.';
     final categoria = report['categoria_ia']?.toString() ?? 'Sin categoría';
 
     final lat = double.tryParse(report['latitud'].toString()) ?? 0;
@@ -2191,177 +2198,168 @@ class _MapScreenState extends State<MapScreen> {
         ) /
         1000;
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      scrollDirection: Axis.horizontal,
-      children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => _openCommunityDetail(report),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _selectReportedPlace(report),
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          width: width,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.white,
             borderRadius: BorderRadius.circular(24),
-            child: Ink(
-              width: 340,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 92,
-                    height: 110,
-                    decoration: BoxDecoration(
-                      color: Colors.purple.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: fotoUrl == null || fotoUrl.isEmpty
-                        ? const Icon(
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 92,
+                height: 110,
+                decoration: BoxDecoration(
+                  color: Colors.purple.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: fotoUrl == null || fotoUrl.isEmpty
+                    ? const Icon(
+                        Icons.image_outlined,
+                        color: Colors.purple,
+                        size: 38,
+                      )
+                    : Image.network(
+                        fotoUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) {
+                          return const Icon(
                             Icons.image_outlined,
                             color: Colors.purple,
                             size: 38,
-                          )
-                        : Image.network(
-                            fotoUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) {
-                              return const Icon(
-                                Icons.image_outlined,
-                                color: Colors.purple,
-                                size: 38,
-                              );
-                            },
-                          ),
-                  ),
+                          );
+                        },
+                      ),
+              ),
 
-                  const SizedBox(width: 14),
+              const SizedBox(width: 14),
 
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Row(
                       children: [
-                        const Row(
-                          children: [
-                            Icon(
-                              Icons.verified_rounded,
-                              color: Color(0xFF7655A6),
-                              size: 16,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Corroborado por RutaAmiga',
-                              style: TextStyle(
-                                color: Color(0xFF7655A6),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
+                        Icon(
+                          Icons.verified_rounded,
+                          color: Color(0xFF7655A6),
+                          size: 16,
                         ),
-
-                        const SizedBox(height: 4),
-
+                        SizedBox(width: 4),
                         Text(
-                          nombre,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 16,
+                          'Corroborado por RutaAmiga',
+                          style: TextStyle(
+                            color: Color(0xFF7655A6),
                             fontWeight: FontWeight.bold,
-                            color: AppColors.textDark,
+                            fontSize: 11,
                           ),
-                        ),
-
-                        const SizedBox(height: 4),
-
-                        Text(
-                          descripcion,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textLight,
-                            fontSize: 12,
-                          ),
-                        ),
-
-                        const Spacer(),
-
-                        Text(
-                          categoria,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textLight,
-                          ),
-                        ),
-
-                        const SizedBox(height: 4),
-
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.near_me,
-                              size: 15,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${distance.toStringAsFixed(1)} km',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const Spacer(),
-                            TextButton.icon(
-                              onPressed: () => _contributeToCommunity(report),
-                              style: TextButton.styleFrom(
-                                visualDensity: VisualDensity.compact,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                ),
-                              ),
-                              icon: const Icon(
-                                Icons.add_a_photo_outlined,
-                                size: 17,
-                              ),
-                              label: const Text(
-                                'Aportar',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: 'Ver ficha',
-                              visualDensity: VisualDensity.compact,
-                              constraints: const BoxConstraints.tightFor(
-                                width: 32,
-                                height: 32,
-                              ),
-                              onPressed: () => _openCommunityDetail(report),
-                              icon: const Icon(
-                                Icons.arrow_outward_rounded,
-                                size: 18,
-                                color: Color(0xFF7655A6),
-                              ),
-                            ),
-                          ],
                         ),
                       ],
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 4),
+
+                    Text(
+                      nombre,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textDark,
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    Text(
+                      descripcion,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textLight,
+                        fontSize: 12,
+                      ),
+                    ),
+
+                    const Spacer(),
+
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            categoria,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textLight,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.near_me,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
+                        Text(
+                          '${distance.toStringAsFixed(1)} km',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        TextButton.icon(
+                          onPressed: () => _contributeToCommunity(report),
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                          ),
+                          icon: const Icon(
+                            Icons.add_a_photo_outlined,
+                            size: 17,
+                          ),
+                          label: const Text(
+                            'Aportar',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Ver ficha',
+                          visualDensity: VisualDensity.compact,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 32,
+                            height: 32,
+                          ),
+                          onPressed: () => _openCommunityDetail(report),
+                          icon: const Icon(
+                            Icons.arrow_outward_rounded,
+                            size: 18,
+                            color: Color(0xFF7655A6),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 

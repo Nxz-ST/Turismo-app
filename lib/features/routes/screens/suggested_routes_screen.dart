@@ -1097,6 +1097,7 @@ class _RouteCardState extends State<_RouteCard> {
         .toList();
     final minutes =
         int.tryParse(route['duration_minutes']?.toString() ?? '') ?? 0;
+    final accent = _accent(route['kind']?.toString());
     return InkWell(
       borderRadius: BorderRadius.circular(24),
       onTap: () => Navigator.push(
@@ -1110,6 +1111,14 @@ class _RouteCardState extends State<_RouteCard> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: accent.withValues(alpha: .16)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0D173F38),
+              blurRadius: 18,
+              offset: Offset(0, 7),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1152,46 +1161,111 @@ class _RouteCardState extends State<_RouteCard> {
               ),
               const SizedBox(height: 16),
             ],
-            Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    _icon(route['kind']?.toString()),
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        route['title']?.toString() ?? 'Ruta sugerida',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+            Container(
+              padding: EdgeInsets.all(widget.featured ? 0 : 14),
+              decoration: widget.featured
+                  ? null
+                  : BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          accent.withValues(alpha: .16),
+                          accent.withValues(alpha: .05),
+                        ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        route['subtitle']?.toString() ?? '',
-                        style: const TextStyle(
-                          color: AppColors.textLight,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
+                      borderRadius: BorderRadius.circular(19),
+                    ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: widget.featured
+                          ? AppColors.primary.withValues(alpha: 0.1)
+                          : Colors.white.withValues(alpha: .88),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      _icon(route['kind']?.toString()),
+                      color: accent,
+                    ),
                   ),
-                ),
-                const Icon(Icons.chevron_right),
-              ],
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (!widget.featured)
+                          Text(
+                            _kindLabel(route['kind']?.toString()),
+                            style: TextStyle(
+                              color: accent,
+                              fontSize: 9,
+                              letterSpacing: .8,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        Text(
+                          route['title']?.toString() ?? 'Ruta sugerida',
+                          style: const TextStyle(
+                            color: AppColors.textDark,
+                            fontSize: 18,
+                            height: 1.12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          route['subtitle']?.toString() ?? '',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.textLight,
+                            fontSize: 12,
+                            height: 1.25,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_rounded, color: accent, size: 20),
+                ],
+              ),
             ),
+            if (!widget.featured && stops.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.alt_route_rounded, color: accent, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        stops
+                            .take(2)
+                            .map((stop) => stop['name']?.toString() ?? 'Parada')
+                            .join('  →  '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textDark,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             Wrap(
               spacing: 8,
@@ -1270,6 +1344,20 @@ class _RouteCardState extends State<_RouteCard> {
     'discoveries' => Icons.explore_outlined,
     'nature' => Icons.forest_outlined,
     _ => Icons.near_me_outlined,
+  };
+
+  static Color _accent(String? kind) => switch (kind) {
+    'discoveries' => const Color(0xFF7655A6),
+    'nature' => const Color(0xFF2E7D57),
+    'official' => const Color(0xFF176F69),
+    _ => AppColors.primary,
+  };
+
+  static String _kindLabel(String? kind) => switch (kind) {
+    'discoveries' => 'DESCUBRIMIENTOS DE LA COMUNIDAD',
+    'nature' => 'PAISAJES Y AVENTURA',
+    'official' => 'DESTINOS OFICIALES',
+    _ => 'RUTA PERSONALIZADA',
   };
 
   Widget _featuredPhoto() {
