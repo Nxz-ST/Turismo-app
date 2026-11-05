@@ -448,11 +448,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _placePhoto(TouristPlaceModel place) => FutureBuilder<String?>(
+  Widget _placePhoto(
+    TouristPlaceModel place, {
+    required int maxWidth,
+    required int maxHeight,
+  }) => FutureBuilder<String?>(
     future: _photos.getTouristPhotoUrl(
       name: place.nombre,
       lat: place.latitud,
       lng: place.longitud,
+      maxWidth: maxWidth,
+      maxHeight: maxHeight,
     ),
     builder: (_, snapshot) => snapshot.data == null
         ? const ColoredBox(
@@ -490,7 +496,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(28),
-              child: _placePhoto(place),
+              child: _placePhoto(place, maxWidth: 720, maxHeight: 540),
             ),
             DecoratedBox(
               decoration: BoxDecoration(
@@ -629,7 +635,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(22),
-            child: _placePhoto(place),
+            child: _placePhoto(place, maxWidth: 360, maxHeight: 270),
           ),
           DecoratedBox(
             decoration: BoxDecoration(

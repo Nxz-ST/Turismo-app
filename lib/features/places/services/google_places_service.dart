@@ -22,7 +22,7 @@ class TouristGalleryPhoto {
 
 class GooglePlacesService {
   final BackendApiClient _api = BackendApiClient();
-  final Map<String, Future<String?>> _touristPhotoCache = {};
+  static final Map<String, Future<String?>> _touristPhotoCache = {};
 
   Map<String, String> get photoHeaders => _api.authenticatedImageHeaders;
 
@@ -58,13 +58,22 @@ class GooglePlacesService {
     required String name,
     required double lat,
     required double lng,
+    int maxWidth = 640,
+    int maxHeight = 480,
   }) async {
     final cacheKey =
-        '$name|${lat.toStringAsFixed(4)}|${lng.toStringAsFixed(4)}';
+        '$name|${lat.toStringAsFixed(4)}|${lng.toStringAsFixed(4)}|'
+        '${maxWidth}x$maxHeight';
     final cached = _touristPhotoCache[cacheKey];
     if (cached != null) return cached;
 
-    final request = _fetchTouristPhotoUrl(name: name, lat: lat, lng: lng);
+    final request = _fetchTouristPhotoUrl(
+      name: name,
+      lat: lat,
+      lng: lng,
+      maxWidth: maxWidth,
+      maxHeight: maxHeight,
+    );
     _touristPhotoCache[cacheKey] = request;
     final result = await request;
     // Un resultado vacío puede ser transitorio (red, sesión o cuota). No debe
@@ -77,6 +86,8 @@ class GooglePlacesService {
     required String name,
     required double lat,
     required double lng,
+    required int maxWidth,
+    required int maxHeight,
   }) async {
     try {
       final response = await _api.get(
@@ -85,7 +96,7 @@ class GooglePlacesService {
       );
       final photoName = (response as Map)['photo_name']?.toString();
       if (photoName == null || photoName.isEmpty) return null;
-      return _photoMediaUrl(photoName, 800, 600);
+      return _photoMediaUrl(photoName, maxWidth, maxHeight);
     } on BackendApiException {
       // La foto es opcional. El backend ya controla cuotas y errores del
       // proveedor; una falla aislada no debe desactivar todas las miniaturas.
