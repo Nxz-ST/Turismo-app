@@ -33,10 +33,6 @@ class TouristPlaceDetailScreen extends StatelessWidget {
         normalized != 'no disponible';
   }
 
-  String get _description => _hasValue(place.descripcion)
-      ? place.descripcion.trim()
-      : 'Aún no contamos con una descripción completa de este lugar.';
-
   String get _category {
     final raw = place.categoria.trim();
     final separator = raw.indexOf('.');
@@ -107,7 +103,7 @@ class TouristPlaceDetailScreen extends StatelessWidget {
                 const SizedBox(height: 14),
                 _WeatherSafetyCard(place: place),
                 const SizedBox(height: 22),
-                _PlaceStoryCard(description: _description, category: _category),
+                _PlaceStoryCard(place: place, category: _category),
                 const SizedBox(height: 30),
                 const _SectionTitle('Cerca de aquí'),
                 const SizedBox(height: 12),
@@ -1359,10 +1355,64 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _PlaceStoryCard extends StatelessWidget {
-  const _PlaceStoryCard({required this.description, required this.category});
+  const _PlaceStoryCard({required this.place, required this.category});
 
-  final String description;
+  final TouristPlaceModel place;
   final String category;
+
+  bool _meaningful(String value) {
+    final normalized = value.trim().toLowerCase();
+    return normalized.isNotEmpty &&
+        normalized != 'null' &&
+        normalized != 'undefined' &&
+        normalized != 'no disponible';
+  }
+
+  String _summary() {
+    final cleaned = place.descripcion
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(RegExp(r'^[\s:;,-]+|[\s:;,-]+$'), '')
+        .trim();
+    if (!_meaningful(cleaned)) {
+      return 'Un atractivo de ${category.toLowerCase()} ubicado en ${place.distrito}, ideal para incorporarlo a una salida por ${place.provincia}.';
+    }
+    final sentences = cleaned
+        .split(RegExp(r'(?<=[.!?])\s+'))
+        .where((sentence) {
+          final lower = sentence.toLowerCase();
+          return sentence.trim().length >= 24 &&
+              !lower.contains('código del recurso') &&
+              !lower.contains('fecha de registro') &&
+              !lower.contains('ficha de inventario');
+        })
+        .take(2)
+        .join(' ');
+    final useful = sentences.isEmpty ? cleaned : sentences;
+    if (useful.length <= 280) return useful;
+    final clipped = useful.substring(0, 280);
+    final lastSpace = clipped.lastIndexOf(' ');
+    return '${clipped.substring(0, lastSpace > 220 ? lastSpace : 280)}…';
+  }
+
+  List<String> _highlights() {
+    final values = <String>[];
+    if (_meaningful(place.actividades)) {
+      values.addAll(
+        place.actividades
+            .split(RegExp(r'[,;\n|]+'))
+            .map((item) => item.trim())
+            .where((item) => item.length >= 3)
+            .take(3),
+      );
+    }
+    if (_meaningful(place.tipoIngreso)) {
+      values.add('Ingreso: ${place.tipoIngreso.trim()}');
+    }
+    if (_meaningful(place.epocaVisita)) {
+      values.add('Mejor época: ${place.epocaVisita.trim()}');
+    }
+    return values.take(4).toList();
+  }
 
   @override
   Widget build(BuildContext context) => Container(
@@ -1402,7 +1452,7 @@ class _PlaceStoryCard extends StatelessWidget {
                 Icon(Icons.auto_awesome_rounded, color: Color(0xFFBFE6D8)),
                 SizedBox(width: 8),
                 Text(
-                  'CONOCE ESTE LUGAR',
+                  'LO ESENCIAL',
                   style: TextStyle(
                     color: Color(0xFFBFE6D8),
                     fontSize: 10,
@@ -1423,11 +1473,51 @@ class _PlaceStoryCard extends StatelessWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              description,
+              _summary(),
               style: const TextStyle(
                 color: Color(0xFFE6F2EE),
                 fontSize: 14,
                 height: 1.55,
+              ),
+            ),
+            if (_highlights().isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 7,
+                runSpacing: 7,
+                children: [
+                  for (final highlight in _highlights())
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .12),
+                        borderRadius: BorderRadius.circular(99),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: .16),
+                        ),
+                      ),
+                      child: Text(
+                        highlight,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+            const SizedBox(height: 13),
+            const Text(
+              'Resumen elaborado únicamente con la información registrada del destino.',
+              style: TextStyle(
+                color: Color(0xFFBFE6D8),
+                fontSize: 9,
+                height: 1.3,
               ),
             ),
           ],
