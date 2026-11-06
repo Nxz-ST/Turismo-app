@@ -13,6 +13,7 @@ import '../../../core/widgets/first_run_guide.dart';
 import '../../../core/widgets/main_navigation_bar.dart';
 import '../../auth/screens/login_screen.dart';
 import '../../places/models/tourist_place_model.dart';
+import '../../places/screens/community_place_detail_screen.dart';
 import '../../places/screens/map_screen.dart';
 import '../../places/screens/evidence_hub_screen.dart';
 import '../../places/screens/tourist_place_detail_screen.dart';
@@ -1130,7 +1131,7 @@ class _HomeScreenState extends State<HomeScreen> {
       description =
           'Conoce un lugar corroborado por viajeros o aporta una nueva perspectiva desde campo.';
       actionLabel = 'Ver descubrimientos';
-      action = () => _open(const MapScreen(initialLayer: 'rutaamiga'));
+      action = _openCommunityDiscovery;
     } else {
       icon = Icons.route_outlined;
       accent = AppColors.primary;
@@ -1277,7 +1278,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ?.toString();
     final name = discovery['nombre']?.toString() ?? 'Nuevo descubrimiento';
     return InkWell(
-      onTap: () => _open(const MapScreen()),
+      onTap: () => _openCommunityDiscovery(discovery: discovery),
       borderRadius: BorderRadius.circular(22),
       child: Ink(
         width: 286,
@@ -1341,6 +1342,15 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  void _openCommunityDiscovery({Map<String, dynamic>? discovery}) {
+    final selected = discovery ?? _communityDiscovery;
+    if (selected == null) {
+      _open(const MapScreen(initialLayer: 'rutaamiga'));
+      return;
+    }
+    _open(CommunityPlaceDetailScreen(initialPlace: selected));
   }
 
   Widget _emptyCard() => Container(
