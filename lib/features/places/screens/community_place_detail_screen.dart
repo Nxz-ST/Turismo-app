@@ -862,10 +862,11 @@ class _CommunitySummaryFact extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE4DBED)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: const Color(0xFF7655A6), size: 20),
-          const Spacer(),
+          const SizedBox(height: 14),
           Text(
             label,
             style: const TextStyle(color: AppColors.textLight, fontSize: 9),
