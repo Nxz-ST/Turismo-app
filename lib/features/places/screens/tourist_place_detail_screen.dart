@@ -1156,11 +1156,11 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
     children: [
       Row(
         children: [
-          const Expanded(child: _SectionTitle('Opiniones de visita')),
+          const Expanded(child: _SectionTitle('Tu experiencia')),
           TextButton.icon(
             onPressed: _addReview,
             icon: const Icon(Icons.rate_review_outlined, size: 18),
-            label: const Text('Opinar'),
+            label: const Text('Añadir nota'),
           ),
         ],
       ),
@@ -1174,7 +1174,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
             borderRadius: BorderRadius.circular(20),
           ),
           child: const Text(
-            'Sé la primera persona en guardar una opinión sobre este lugar.',
+            'Guarda una valoración y algo que quieras recordar de tu visita.',
             style: TextStyle(color: AppColors.textLight),
           ),
         )
@@ -1219,7 +1219,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
             ),
       const SizedBox(height: 4),
       const Text(
-        'Las opiniones se guardan en este dispositivo y estarán disponibles sin conexión.',
+        'Esta información es privada: se guarda en tu cuenta y también funciona sin conexión.',
         style: TextStyle(color: AppColors.textLight, fontSize: 9),
       ),
     ],
@@ -1232,7 +1232,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Tu opinión'),
+          title: const Text('Tu experiencia'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1253,7 +1253,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
                 controller: controller,
                 maxLines: 3,
                 decoration: const InputDecoration(
-                  hintText: '¿Qué debería saber otro viajero?',
+                  hintText: '¿Qué quieres recordar de tu visita?',
                 ),
               ),
             ],
@@ -1293,6 +1293,16 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
       visitVerified: verified,
     );
     await _load();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          verified
+              ? 'Experiencia guardada como visita verificada.'
+              : 'Experiencia guardada de forma privada.',
+        ),
+      ),
+    );
   }
 }
 
@@ -1624,6 +1634,14 @@ class _PriceCard extends StatelessWidget {
   final String label;
   final String value;
 
+  String get _displayValue {
+    final cleaned = value.trim();
+    if (RegExp(r'^\d+(?:[.,]\d+)?$').hasMatch(cleaned)) {
+      return 'S/ $cleaned';
+    }
+    return cleaned.replaceFirst(RegExp(r'^[sS]/\s*'), 'S/ ');
+  }
+
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
@@ -1640,7 +1658,7 @@ class _PriceCard extends StatelessWidget {
         ),
         const SizedBox(height: 5),
         Text(
-          value,
+          _displayValue,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
