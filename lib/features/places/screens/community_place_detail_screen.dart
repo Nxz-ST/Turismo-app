@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -23,18 +24,59 @@ class _CommunityPlaceDetailScreenState
     extends State<CommunityPlaceDetailScreen> {
   late final String _placeId = widget.initialPlace['id'].toString();
   int _heroIndex = 0;
+  bool _saved = false;
   late final Future<Map<String, dynamic>> _future = PlaceTrustService()
       .getCommunityPlace(_placeId)
       .catchError((_) => widget.initialPlace);
 
+  static const _savedKey = 'rutaamiga_saved_community_places_v1';
+
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: AppColors.background,
-    body: FutureBuilder<Map<String, dynamic>>(
-      future: _future,
-      builder: (context, snapshot) {
-        final place = snapshot.data ?? widget.initialPlace;
-        return CustomScrollView(
+  void initState() {
+    super.initState();
+    _loadSavedState();
+  }
+
+  Future<void> _loadSavedState() async {
+    final preferences = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(
+      () => _saved =
+          preferences.getStringList(_savedKey)?.contains(_placeId) ?? false,
+    );
+  }
+
+  Future<void> _toggleSaved() async {
+    final preferences = await SharedPreferences.getInstance();
+    final saved = preferences.getStringList(_savedKey)?.toSet() ?? <String>{};
+    if (_saved) {
+      saved.remove(_placeId);
+    } else {
+      saved.add(_placeId);
+    }
+    await preferences.setStringList(_savedKey, saved.toList());
+    if (!mounted) return;
+    setState(() => _saved = !_saved);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _saved
+              ? 'Lugar guardado para consultarlo después.'
+              : 'Lugar eliminado de guardados.',
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
+    future: _future,
+    builder: (context, snapshot) {
+      final place = snapshot.data ?? widget.initialPlace;
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        bottomNavigationBar: _bottomActions(place),
+        body: CustomScrollView(
           slivers: [
             SliverAppBar(
               expandedHeight: 280,
@@ -54,7 +96,7 @@ class _CommunityPlaceDetailScreenState
               flexibleSpace: FlexibleSpaceBar(background: _hero(place)),
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 36),
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 116),
               sliver: SliverList.list(
                 children: [
                   _communityBadge(),
@@ -72,13 +114,13 @@ class _CommunityPlaceDetailScreenState
                     ),
                   ),
                   const SizedBox(height: 18),
-                  _actions(place),
-                  const SizedBox(height: 24),
                   PlaceTrustPassportCard(
                     source: 'community',
                     placeId: _placeId,
                     initialTrust: _trust(place),
                   ),
+                  const SizedBox(height: 18),
+                  _evolutionCard(place),
                   const SizedBox(height: 28),
                   Text(
                     'Información comunitaria',
@@ -101,9 +143,9 @@ class _CommunityPlaceDetailScreenState
               ),
             ),
           ],
-        );
-      },
-    ),
+        ),
+      );
+    },
   );
 
   Widget _hero(Map<String, dynamic> place) {
@@ -193,38 +235,173 @@ class _CommunityPlaceDetailScreenState
     ),
   );
 
-  Widget _actions(Map<String, dynamic> place) => Row(
-    children: [
-      Expanded(
-        child: FilledButton.icon(
-          onPressed: () {
-            HapticFeedback.selectionClick();
-            _openDirections(place);
-          },
-          icon: const Icon(Icons.directions_outlined),
-          label: const Text('Cómo llegar'),
-        ),
+  Widget _bottomActions(Map<String, dynamic> place) => SafeArea(
+    top: false,
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE1E9E6))),
       ),
-      const SizedBox(width: 10),
-      Expanded(
-        child: OutlinedButton.icon(
-          onPressed: () {
-            HapticFeedback.selectionClick();
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => RegisterPlaceScreen(
-                  existingPlace: ExistingPlaceTarget.fromCommunity(place),
-                ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              button: true,
+              label: 'Cómo llegar a este lugar',
+              child: FilledButton.icon(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  _openDirections(place);
+                },
+                icon: const Icon(Icons.directions_outlined),
+                label: const Text('Cómo llegar'),
               ),
-            );
-          },
-          icon: const Icon(Icons.add_a_photo_outlined),
-          label: const Text('Aportar'),
+            ),
+          ),
+          IconButton(
+            tooltip: _saved ? 'Quitar de guardados' : 'Guardar lugar',
+            onPressed: _toggleSaved,
+            icon: Icon(
+              _saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+              color: const Color(0xFF7655A6),
+            ),
+          ),
+          Expanded(
+            child: Semantics(
+              button: true,
+              label: 'Aportar nueva evidencia para este lugar',
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RegisterPlaceScreen(
+                        existingPlace: ExistingPlaceTarget.fromCommunity(place),
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.add_a_photo_outlined),
+                label: const Text('Aportar'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _evolutionCard(Map<String, dynamic> place) {
+    final updates = _updates(place);
+    final profiles = updates
+        .where((update) => update['answers'] is Map)
+        .map((update) => Map<String, dynamic>.from(update['answers'] as Map))
+        .toList();
+    final aggregate = _aggregateProfiles(profiles);
+    const fields = <String, String>{
+      'access_type': 'acceso',
+      'access_difficulty': 'dificultad',
+      'cost_type': 'ingreso',
+      'place_state': 'estado',
+      'activities': 'actividades',
+      'services': 'servicios',
+      'risks': 'precauciones',
+    };
+    final pending = fields.entries
+        .where((entry) {
+          final value = aggregate[entry.key];
+          return value == null || (value is List && value.isEmpty);
+        })
+        .map((entry) => entry.value)
+        .toList();
+    final confirmed = fields.length - pending.length;
+    final trust = _trust(place);
+    final supporters = trust?.independentSupporters ?? 0;
+
+    return Semantics(
+      label:
+          'Evolución de la ficha: ${_photos(place).length} fotos, ${profiles.length} aportes y $supporters personas la respaldan',
+      child: Container(
+        padding: const EdgeInsets.all(17),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF7F2FB),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFE1D6ED)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.auto_graph_rounded, color: Color(0xFF7655A6)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Cómo está creciendo esta ficha',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                _EvolutionMetric(
+                  icon: Icons.photo_library_outlined,
+                  value: _photos(place).length,
+                  label: 'Fotos',
+                ),
+                _EvolutionMetric(
+                  icon: Icons.fact_check_outlined,
+                  value: profiles.length,
+                  label: 'Aportes',
+                ),
+                _EvolutionMetric(
+                  icon: Icons.people_outline,
+                  value: supporters,
+                  label: 'Personas',
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: confirmed / fields.length,
+                      minHeight: 7,
+                      backgroundColor: Colors.white,
+                      color: const Color(0xFF7655A6),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  '$confirmed/${fields.length}',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              pending.isEmpty
+                  ? 'La información esencial ya fue completada. Nuevos aportes ayudan a mantenerla vigente.'
+                  : 'Aún falta confirmar: ${pending.join(', ')}.',
+              style: const TextStyle(
+                color: AppColors.textLight,
+                fontSize: 11,
+                height: 1.4,
+              ),
+            ),
+          ],
         ),
       ),
-    ],
-  );
+    );
+  }
 
   Widget _location(Map<String, dynamic> place) => Container(
     padding: const EdgeInsets.all(16),
@@ -542,6 +719,36 @@ class _CommunityProfileCard extends StatelessWidget {
         .toList();
     return resolved.isEmpty ? null : resolved.join(', ');
   }
+}
+
+class _EvolutionMetric extends StatelessWidget {
+  const _EvolutionMetric({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final int value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Column(
+      children: [
+        Icon(icon, color: const Color(0xFF7655A6), size: 20),
+        const SizedBox(height: 5),
+        Text(
+          '$value',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+        ),
+        Text(
+          label,
+          style: const TextStyle(color: AppColors.textLight, fontSize: 10),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ProfileFact extends StatelessWidget {

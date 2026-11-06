@@ -870,21 +870,48 @@ class _RegisterPlaceScreenState extends State<RegisterPlaceScreen> {
       Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.primarySoft,
+          color: widget.existingPlace == null
+              ? AppColors.primarySoft
+              : const Color(0xFFF2ECF8),
           borderRadius: BorderRadius.circular(17),
         ),
-        child: const Row(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.verified_user_outlined, color: AppColors.primary),
-            SizedBox(width: 10),
+            Icon(
+              widget.existingPlace == null
+                  ? Icons.route_outlined
+                  : Icons.add_photo_alternate_outlined,
+              color: widget.existingPlace == null
+                  ? AppColors.primary
+                  : const Color(0xFF7655A6),
+            ),
+            const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                'RutaAmiga verificará si es un nuevo descubrimiento o un aporte para un lugar existente. La fotografía, ubicación y fecha quedarán como evidencia auditable.',
-                style: TextStyle(
-                  color: AppColors.primaryDark,
-                  fontSize: 11,
-                  height: 1.35,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.existingPlace == null
+                        ? 'RutaAmiga decidirá dónde incorporarlo'
+                        : 'Se aportará a ${widget.existingPlace!.name}',
+                    style: const TextStyle(
+                      color: AppColors.primaryDark,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    widget.existingPlace == null
+                        ? 'Si coincide con una ficha existente, reforzará ese lugar. Si no coincide, se evaluará como un nuevo descubrimiento.'
+                        : 'La fotografía debe mostrar este mismo lugar desde tu ubicación actual. Se validará su categoría antes de incorporarla.',
+                    style: const TextStyle(
+                      color: AppColors.primaryDark,
+                      fontSize: 11,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

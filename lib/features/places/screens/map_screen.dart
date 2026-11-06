@@ -153,6 +153,34 @@ class _ExplorePlaceSearchDelegate extends SearchDelegate<TouristPlaceModel?> {
   }
 }
 
+class _MapSourceKey extends StatelessWidget {
+  const _MapSourceKey({required this.color, required this.label});
+
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+      const SizedBox(width: 4),
+      Text(
+        label,
+        style: const TextStyle(
+          color: AppColors.textLight,
+          fontSize: 9,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ],
+  );
+}
+
 class _MapScreenState extends State<MapScreen> {
   GoogleMapController? mapController;
   static const _touristClusterId = ClusterManagerId('tourist_places');
@@ -1434,14 +1462,25 @@ class _MapScreenState extends State<MapScreen> {
                         ),
                       ),
                       if (routeInfo == null)
-                        Text(
-                          '$_resultCount resultados · desliza para ver todos',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textLight,
-                            fontSize: 10,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$_resultCount resultados · desliza para ver todos',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: AppColors.textLight,
+                                fontSize: 10,
+                              ),
+                            ),
+                            if (selectedLayer == 'turisticos' ||
+                                selectedLayer == 'oficiales' ||
+                                selectedLayer == 'rutaamiga') ...[
+                              const SizedBox(height: 4),
+                              _sourceLegend(),
+                            ],
+                          ],
                         )
                       else
                         Row(
@@ -1547,6 +1586,24 @@ class _MapScreenState extends State<MapScreen> {
           const SizedBox(height: 30),
         ],
       ),
+    ),
+  );
+
+  Widget _sourceLegend() => Semantics(
+    label: selectedLayer == 'oficiales'
+        ? 'Los marcadores verdes corresponden a atractivos oficiales'
+        : selectedLayer == 'rutaamiga'
+        ? 'Los marcadores morados corresponden a descubrimientos corroborados por RutaAmiga'
+        : 'Verde indica atractivo oficial y morado descubrimiento corroborado por RutaAmiga',
+    child: Wrap(
+      spacing: 10,
+      runSpacing: 3,
+      children: [
+        if (selectedLayer != 'rutaamiga')
+          const _MapSourceKey(color: AppColors.primary, label: 'Oficial'),
+        if (selectedLayer != 'oficiales')
+          const _MapSourceKey(color: Color(0xFF7655A6), label: 'RutaAmiga'),
+      ],
     ),
   );
 

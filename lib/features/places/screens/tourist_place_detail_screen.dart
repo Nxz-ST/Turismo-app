@@ -5,11 +5,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/location_service.dart';
 import '../../profile/services/travel_library_service.dart';
+import '../models/existing_place_target.dart';
 import '../models/tourist_place_model.dart';
 import '../services/google_places_service.dart';
 import '../services/weather_service.dart';
 import '../widgets/place_trust_passport_card.dart';
 import 'map_screen.dart';
+import 'register_place_screen.dart';
 
 class TouristPlaceDetailScreen extends StatelessWidget {
   const TouristPlaceDetailScreen({
@@ -47,6 +49,7 @@ class TouristPlaceDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      bottomNavigationBar: _bottomActions(context),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -65,14 +68,13 @@ class TouristPlaceDetailScreen extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            actions: [_FavoriteButton(place: place)],
             flexibleSpace: FlexibleSpaceBar(
               stretchModes: const [StretchMode.zoomBackground],
               background: _photoHero(),
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 36),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 116),
             sliver: SliverList.list(
               children: [
                 const _OfficialBadge(),
@@ -103,7 +105,10 @@ class TouristPlaceDetailScreen extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 22),
-                _primaryAction(context),
+                SizedBox(
+                  width: double.infinity,
+                  child: _AddToTripButton(place: place),
+                ),
                 const SizedBox(height: 24),
                 _facts(),
                 const SizedBox(height: 14),
@@ -164,23 +169,54 @@ class TouristPlaceDetailScreen extends StatelessWidget {
   Widget _photoHero() =>
       _ProgressivePlaceGallery(place: place, photos: _photos);
 
-  Widget _primaryAction(BuildContext context) => Row(
-    children: [
-      Expanded(
-        child: FilledButton.icon(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => MapScreen(initialFocusPlace: place),
+  Widget _bottomActions(BuildContext context) => SafeArea(
+    top: false,
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE1E9E6))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              button: true,
+              label: 'Ver este lugar en el mapa',
+              child: FilledButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MapScreen(initialFocusPlace: place),
+                  ),
+                ),
+                icon: const Icon(Icons.directions_outlined),
+                label: const Text('Cómo llegar'),
+              ),
             ),
           ),
-          icon: const Icon(Icons.map_outlined),
-          label: const Text('Ver mapa'),
-        ),
+          _FavoriteButton(place: place),
+          Expanded(
+            child: Semantics(
+              button: true,
+              label: 'Aportar una fotografía a este lugar oficial',
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RegisterPlaceScreen(
+                      existingPlace: ExistingPlaceTarget.fromOfficial(place),
+                    ),
+                  ),
+                ),
+                icon: const Icon(Icons.add_a_photo_outlined),
+                label: const Text('Aportar'),
+              ),
+            ),
+          ),
+        ],
       ),
-      const SizedBox(width: 10),
-      Expanded(child: _AddToTripButton(place: place)),
-    ],
+    ),
   );
 
   Widget _facts() => Row(

@@ -81,16 +81,113 @@ class _MyContributionsScreenState extends State<MyContributionsScreen> {
             onRefresh: _reload,
             child: ListView.separated(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
-              itemCount: items.length,
+              itemCount: items.length + 1,
               separatorBuilder: (_, __) => const SizedBox(height: 14),
-              itemBuilder: (_, index) =>
-                  _ContributionCard(item: items[index], onChanged: _reload),
+              itemBuilder: (_, index) => index == 0
+                  ? _ContributionsSummary(items: items, onSync: _reload)
+                  : _ContributionCard(
+                      item: items[index - 1],
+                      onChanged: _reload,
+                    ),
             ),
           );
         },
       ),
     );
   }
+}
+
+class _ContributionsSummary extends StatelessWidget {
+  const _ContributionsSummary({required this.items, required this.onSync});
+
+  final List<Map<String, dynamic>> items;
+  final Future<void> Function() onSync;
+
+  int _count(Set<String> statuses) => items
+      .where((item) => statuses.contains(item['status']?.toString()))
+      .length;
+
+  @override
+  Widget build(BuildContext context) {
+    final pending = _count({
+      'offline_pending',
+      'pending',
+      'processing_ai',
+      'processing_gis',
+    });
+    final review = _count({'candidate', 'needs_review'});
+    final ready = _count({'duplicate', 'validated'});
+    final offline = _count({'offline_pending'});
+    return Semantics(
+      container: true,
+      label:
+          '$pending aportes procesándose, $review en revisión y $ready incorporados',
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: AppColors.primarySoft,
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Estado de tus aportes',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 13),
+            Row(
+              children: [
+                _SummaryMetric(value: pending, label: 'Procesando'),
+                _SummaryMetric(value: review, label: 'En revisión'),
+                _SummaryMetric(value: ready, label: 'Incorporados'),
+              ],
+            ),
+            if (offline > 0) ...[
+              const SizedBox(height: 13),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onSync,
+                  icon: const Icon(Icons.sync_rounded),
+                  label: Text(
+                    offline == 1
+                        ? 'Enviar aporte pendiente'
+                        : 'Enviar $offline aportes pendientes',
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryMetric extends StatelessWidget {
+  const _SummaryMetric({required this.value, required this.label});
+
+  final int value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Column(
+      children: [
+        Text(
+          '$value',
+          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.textLight, fontSize: 10),
+        ),
+      ],
+    ),
+  );
 }
 
 class _ContributionCard extends StatelessWidget {
