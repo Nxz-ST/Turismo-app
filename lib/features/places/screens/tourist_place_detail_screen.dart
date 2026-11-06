@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -53,11 +54,22 @@ class TouristPlaceDetailScreen extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 320,
+            expandedHeight: 380,
             pinned: true,
             stretch: true,
             backgroundColor: AppColors.primaryDark,
             foregroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            automaticallyImplyLeading: false,
+            leadingWidth: 66,
+            leading: Padding(
+              padding: const EdgeInsets.only(left: 14),
+              child: _HeroActionButton(
+                tooltip: 'Volver',
+                icon: Icons.arrow_back_ios_new_rounded,
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
             title: Text(
               place.nombre,
               maxLines: 1,
@@ -68,50 +80,26 @@ class TouristPlaceDetailScreen extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
             ),
+            actions: [
+              _HeroActionButton(
+                tooltip: 'Compartir lugar',
+                icon: Icons.ios_share_rounded,
+                onPressed: () => _sharePlace(),
+              ),
+              const SizedBox(width: 8),
+              _FavoriteButton(place: place, hero: true),
+              const SizedBox(width: 14),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               stretchModes: const [StretchMode.zoomBackground],
               background: _photoHero(),
             ),
           ),
+          SliverToBoxAdapter(child: _heroSummary(context)),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 116),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 116),
             sliver: SliverList.list(
               children: [
-                const _OfficialBadge(),
-                const SizedBox(height: 12),
-                Text(
-                  place.nombre,
-                  style: Theme.of(context).textTheme.headlineLarge,
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(
-                      Icons.location_on_rounded,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        '${place.distrito}, ${place.provincia}, ${place.departamento}',
-                        style: const TextStyle(
-                          color: AppColors.textLight,
-                          height: 1.35,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 22),
-                SizedBox(
-                  width: double.infinity,
-                  child: _AddToTripButton(place: place),
-                ),
-                const SizedBox(height: 24),
-                _facts(),
-                const SizedBox(height: 14),
                 PlaceTrustPassportCard(
                   source: 'official',
                   placeId: place.id.toString(),
@@ -169,13 +157,88 @@ class TouristPlaceDetailScreen extends StatelessWidget {
   Widget _photoHero() =>
       _ProgressivePlaceGallery(place: place, photos: _photos);
 
+  Future<void> _sharePlace() => Share.share(
+    'Descubre ${place.nombre} en RutaAmiga.\n'
+    '${place.distrito}, ${place.provincia}, ${place.departamento}.',
+    subject: place.nombre,
+  );
+
+  Widget _heroSummary(BuildContext context) => Transform.translate(
+    offset: const Offset(0, -26),
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x24081712),
+            blurRadius: 30,
+            offset: Offset(0, -8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(child: _OfficialBadge()),
+              const SizedBox(width: 10),
+              _AddToTripButton(place: place, compact: true),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            place.nombre,
+            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+              fontSize: 32,
+              height: 1.08,
+              letterSpacing: -.7,
+            ),
+          ),
+          const SizedBox(height: 11),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.location_on_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '${place.distrito}, ${place.provincia}, ${place.departamento}',
+                  style: const TextStyle(
+                    color: AppColors.textLight,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          _facts(),
+        ],
+      ),
+    ),
+  );
+
   Widget _bottomActions(BuildContext context) => SafeArea(
     top: false,
     child: Container(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE1E9E6))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x24081712),
+            blurRadius: 24,
+            offset: Offset(0, -6),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -195,7 +258,7 @@ class TouristPlaceDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          _FavoriteButton(place: place),
+          const SizedBox(width: 10),
           Expanded(
             child: Semantics(
               button: true,
@@ -668,8 +731,9 @@ class _PhotoGalleryViewerState extends State<_PhotoGalleryViewer> {
 }
 
 class _FavoriteButton extends StatefulWidget {
-  const _FavoriteButton({required this.place});
+  const _FavoriteButton({required this.place, this.hero = false});
   final TouristPlaceModel place;
+  final bool hero;
 
   @override
   State<_FavoriteButton> createState() => _FavoriteButtonState();
@@ -689,6 +753,13 @@ class _FavoriteButtonState extends State<_FavoriteButton> {
   @override
   Widget build(BuildContext context) => IconButton(
     tooltip: _favorite ? 'Quitar de favoritos' : 'Guardar lugar',
+    style: widget.hero
+        ? IconButton.styleFrom(
+            backgroundColor: Colors.black.withValues(alpha: .48),
+            foregroundColor: Colors.white,
+            minimumSize: const Size(44, 44),
+          )
+        : null,
     onPressed: () async {
       final added = await TravelLibraryService.instance.toggleFavorite(
         widget.place,
@@ -710,8 +781,9 @@ class _FavoriteButtonState extends State<_FavoriteButton> {
 }
 
 class _AddToTripButton extends StatefulWidget {
-  const _AddToTripButton({required this.place});
+  const _AddToTripButton({required this.place, this.compact = false});
   final TouristPlaceModel place;
+  final bool compact;
 
   @override
   State<_AddToTripButton> createState() => _AddToTripButtonState();
@@ -730,8 +802,8 @@ class _AddToTripButtonState extends State<_AddToTripButton> {
   }
 
   @override
-  Widget build(BuildContext context) => OutlinedButton.icon(
-    onPressed: _added
+  Widget build(BuildContext context) {
+    final action = _added
         ? null
         : () async {
             final added = await TravelLibraryService.instance.addToTrip(
@@ -742,9 +814,50 @@ class _AddToTripButtonState extends State<_AddToTripButton> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Agregado a Mi viaje.')),
             );
-          },
-    icon: Icon(_added ? Icons.check_rounded : Icons.add_road_rounded),
-    label: Text(_added ? 'En mi viaje' : 'Mi viaje'),
+          };
+    if (widget.compact) {
+      return FilledButton.tonalIcon(
+        onPressed: action,
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          visualDensity: VisualDensity.compact,
+        ),
+        icon: Icon(
+          _added ? Icons.check_rounded : Icons.add_road_rounded,
+          size: 17,
+        ),
+        label: Text(_added ? 'Añadido' : 'Mi viaje'),
+      );
+    }
+    return OutlinedButton.icon(
+      onPressed: action,
+      icon: Icon(_added ? Icons.check_rounded : Icons.add_road_rounded),
+      label: Text(_added ? 'En mi viaje' : 'Mi viaje'),
+    );
+  }
+}
+
+class _HeroActionButton extends StatelessWidget {
+  const _HeroActionButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    tooltip: tooltip,
+    onPressed: onPressed,
+    style: IconButton.styleFrom(
+      backgroundColor: Colors.black.withValues(alpha: .48),
+      foregroundColor: Colors.white,
+      minimumSize: const Size(44, 44),
+    ),
+    icon: Icon(icon, size: 20),
   );
 }
 
