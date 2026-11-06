@@ -1226,54 +1226,14 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
   );
 
   Future<void> _addReview() async {
-    var rating = 5;
-    final controller = TextEditingController();
-    final accepted = await showDialog<bool>(
+    final result = await showModalBottomSheet<({int rating, String comment})>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Tu experiencia'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  5,
-                  (index) => IconButton(
-                    onPressed: () => setDialogState(() => rating = index + 1),
-                    icon: Icon(
-                      index < rating ? Icons.star : Icons.star_border,
-                      color: const Color(0xFFF2A93B),
-                    ),
-                  ),
-                ),
-              ),
-              TextField(
-                controller: controller,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: '¿Qué quieres recordar de tu visita?',
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Guardar'),
-            ),
-          ],
-        ),
-      ),
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _VisitNoteComposer(placeName: widget.place.nombre),
     );
-    final comment = controller.text.trim();
-    controller.dispose();
-    if (accepted != true || comment.isEmpty) return;
+    if (result == null) return;
     var verified = false;
     try {
       final position = await LocationService.getCurrentLocation();
@@ -1288,8 +1248,8 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
     } catch (_) {}
     await TravelLibraryService.instance.addReview(
       placeId: widget.place.id,
-      rating: rating,
-      comment: comment,
+      rating: result.rating,
+      comment: result.comment,
       visitVerified: verified,
     );
     await _load();
@@ -1304,6 +1264,170 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
       ),
     );
   }
+}
+
+class _VisitNoteComposer extends StatefulWidget {
+  const _VisitNoteComposer({required this.placeName});
+
+  final String placeName;
+
+  @override
+  State<_VisitNoteComposer> createState() => _VisitNoteComposerState();
+}
+
+class _VisitNoteComposerState extends State<_VisitNoteComposer> {
+  final _controller = TextEditingController();
+  int _rating = 5;
+  bool _canSave = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final comment = _controller.text.trim();
+    if (comment.isEmpty) return;
+    Navigator.pop(context, (rating: _rating, comment: comment));
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedPadding(
+    duration: const Duration(milliseconds: 180),
+    curve: Curves.easeOut,
+    padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(22, 10, 22, 22),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF8F7F2),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFCAD4D0),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: 48,
+              height: 48,
+              decoration: const BoxDecoration(
+                color: AppColors.primarySoft,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Guarda este momento',
+              style: TextStyle(
+                color: AppColors.primaryDark,
+                fontSize: 25,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 5),
+            Text(
+              widget.placeName,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: AppColors.textLight, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              '¿Cómo estuvo tu experiencia?',
+              style: TextStyle(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 9),
+            Row(
+              children: List.generate(5, (index) {
+                final selected = index < _rating;
+                return Expanded(
+                  child: IconButton(
+                    tooltip: '${index + 1} estrellas',
+                    onPressed: () => setState(() => _rating = index + 1),
+                    style: IconButton.styleFrom(
+                      backgroundColor: selected
+                          ? const Color(0xFFFFF0CE)
+                          : Colors.white,
+                    ),
+                    icon: Icon(
+                      selected ? Icons.star_rounded : Icons.star_border_rounded,
+                      color: const Color(0xFFF2A93B),
+                    ),
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 17),
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              minLines: 3,
+              maxLines: 5,
+              maxLength: 400,
+              onChanged: (value) =>
+                  setState(() => _canSave = value.trim().isNotEmpty),
+              decoration: const InputDecoration(
+                labelText: 'Tu nota',
+                hintText: '¿Qué quieres recordar de tu visita?',
+                alignLabelWithHint: true,
+                filled: true,
+                fillColor: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primarySoft,
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.lock_outline_rounded,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
+                  SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      'Solo tú podrás ver esta experiencia. Se sincronizará con tu cuenta.',
+                      style: TextStyle(fontSize: 10, height: 1.35),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _canSave ? _save : null,
+                icon: const Icon(Icons.bookmark_add_outlined),
+                label: const Text('Guardar experiencia'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _OfficialBadge extends StatelessWidget {
