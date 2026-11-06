@@ -2201,7 +2201,7 @@ class _MapScreenState extends State<MapScreen> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _selectReportedPlace(report),
+        onTap: () => _openCommunityDetail(report),
         borderRadius: BorderRadius.circular(24),
         child: Ink(
           width: width,
@@ -2253,13 +2253,22 @@ class _MapScreenState extends State<MapScreen> {
                           size: 16,
                         ),
                         SizedBox(width: 4),
-                        Text(
-                          'Corroborado por RutaAmiga',
-                          style: TextStyle(
-                            color: Color(0xFF7655A6),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
+                        Expanded(
+                          child: Text(
+                            'Corroborado por RutaAmiga',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Color(0xFF7655A6),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
                           ),
+                        ),
+                        Icon(
+                          Icons.arrow_outward_rounded,
+                          size: 17,
+                          color: Color(0xFF7655A6),
                         ),
                       ],
                     ),
@@ -2289,23 +2298,23 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                     ),
 
+                    const SizedBox(height: 3),
+
+                    Text(
+                      categoria,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textLight,
+                      ),
+                    ),
+
                     const Spacer(),
 
                     Row(
                       children: [
-                        Flexible(
-                          child: Text(
-                            categoria,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.textLight,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
                         const Icon(
                           Icons.near_me,
                           size: 14,
@@ -2318,7 +2327,7 @@ class _MapScreenState extends State<MapScreen> {
                             fontSize: 12,
                           ),
                         ),
-                        const SizedBox(width: 4),
+                        const Spacer(),
                         TextButton.icon(
                           onPressed: () => _contributeToCommunity(report),
                           style: TextButton.styleFrom(
@@ -2335,20 +2344,6 @@ class _MapScreenState extends State<MapScreen> {
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                             ),
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Ver ficha',
-                          visualDensity: VisualDensity.compact,
-                          constraints: const BoxConstraints.tightFor(
-                            width: 32,
-                            height: 32,
-                          ),
-                          onPressed: () => _openCommunityDetail(report),
-                          icon: const Icon(
-                            Icons.arrow_outward_rounded,
-                            size: 18,
-                            color: Color(0xFF7655A6),
                           ),
                         ),
                       ],
