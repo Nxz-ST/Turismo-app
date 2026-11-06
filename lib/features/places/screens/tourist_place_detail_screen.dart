@@ -181,13 +181,7 @@ class TouristPlaceDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Expanded(child: _OfficialBadge()),
-              const SizedBox(width: 10),
-              _AddToTripButton(place: place, compact: true),
-            ],
-          ),
+          const _OfficialBadge(),
           const SizedBox(height: 16),
           Text(
             place.nombre,
@@ -217,6 +211,11 @@ class TouristPlaceDetailScreen extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 14),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _AddToTripButton(place: place, compact: true),
           ),
           const SizedBox(height: 22),
           _facts(),
@@ -819,14 +818,19 @@ class _AddToTripButtonState extends State<_AddToTripButton> {
       return FilledButton.tonalIcon(
         onPressed: action,
         style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          backgroundColor: AppColors.primarySoft,
+          foregroundColor: AppColors.primary,
+          minimumSize: const Size(0, 38),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
           visualDensity: VisualDensity.compact,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: const StadiumBorder(),
         ),
         icon: Icon(
           _added ? Icons.check_rounded : Icons.add_road_rounded,
           size: 17,
         ),
-        label: Text(_added ? 'Añadido' : 'Mi viaje'),
+        label: Text(_added ? 'En mi viaje' : 'Añadir a mi viaje'),
       );
     }
     return OutlinedButton.icon(
