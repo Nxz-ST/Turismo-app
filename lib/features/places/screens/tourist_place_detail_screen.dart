@@ -106,17 +106,8 @@ class TouristPlaceDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 _WeatherSafetyCard(place: place),
-                const SizedBox(height: 30),
-                const _SectionTitle('Sobre este lugar'),
-                const SizedBox(height: 12),
-                Text(
-                  _description,
-                  style: const TextStyle(
-                    color: AppColors.textLight,
-                    fontSize: 15,
-                    height: 1.65,
-                  ),
-                ),
+                const SizedBox(height: 22),
+                _PlaceStoryCard(description: _description, category: _category),
                 const SizedBox(height: 30),
                 const _SectionTitle('Cerca de aquí'),
                 const SizedBox(height: 12),
@@ -163,64 +154,61 @@ class TouristPlaceDetailScreen extends StatelessWidget {
     subject: place.nombre,
   );
 
-  Widget _heroSummary(BuildContext context) => Transform.translate(
-    offset: const Offset(0, -26),
-    child: Container(
-      padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
-      decoration: const BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x24081712),
-            blurRadius: 30,
-            offset: Offset(0, -8),
+  Widget _heroSummary(BuildContext context) => Container(
+    padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+    decoration: const BoxDecoration(
+      color: AppColors.background,
+      borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      boxShadow: [
+        BoxShadow(
+          color: Color(0x24081712),
+          blurRadius: 30,
+          offset: Offset(0, -8),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _OfficialBadge(),
+        const SizedBox(height: 16),
+        Text(
+          place.nombre,
+          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+            fontSize: 32,
+            height: 1.08,
+            letterSpacing: -.7,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const _OfficialBadge(),
-          const SizedBox(height: 16),
-          Text(
-            place.nombre,
-            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-              fontSize: 32,
-              height: 1.08,
-              letterSpacing: -.7,
+        ),
+        const SizedBox(height: 11),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(
+              Icons.location_on_rounded,
+              color: AppColors.primary,
+              size: 20,
             ),
-          ),
-          const SizedBox(height: 11),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(
-                Icons.location_on_rounded,
-                color: AppColors.primary,
-                size: 20,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  '${place.distrito}, ${place.provincia}, ${place.departamento}',
-                  style: const TextStyle(
-                    color: AppColors.textLight,
-                    height: 1.35,
-                  ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                '${place.distrito}, ${place.provincia}, ${place.departamento}',
+                style: const TextStyle(
+                  color: AppColors.textLight,
+                  height: 1.35,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: _AddToTripButton(place: place, compact: true),
-          ),
-          const SizedBox(height: 22),
-          _facts(),
-        ],
-      ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        _facts(),
+        const SizedBox(height: 14),
+        SizedBox(
+          width: double.infinity,
+          child: _AddToTripButton(place: place),
+        ),
+      ],
     ),
   );
 
@@ -780,9 +768,8 @@ class _FavoriteButtonState extends State<_FavoriteButton> {
 }
 
 class _AddToTripButton extends StatefulWidget {
-  const _AddToTripButton({required this.place, this.compact = false});
+  const _AddToTripButton({required this.place});
   final TouristPlaceModel place;
-  final bool compact;
 
   @override
   State<_AddToTripButton> createState() => _AddToTripButtonState();
@@ -814,29 +801,49 @@ class _AddToTripButtonState extends State<_AddToTripButton> {
               const SnackBar(content: Text('Agregado a Mi viaje.')),
             );
           };
-    if (widget.compact) {
-      return FilledButton.tonalIcon(
-        onPressed: action,
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.primarySoft,
-          foregroundColor: AppColors.primary,
-          minimumSize: const Size(0, 38),
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
-          visualDensity: VisualDensity.compact,
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: const StadiumBorder(),
-        ),
-        icon: Icon(
-          _added ? Icons.check_rounded : Icons.add_road_rounded,
-          size: 17,
-        ),
-        label: Text(_added ? 'En mi viaje' : 'Añadir a mi viaje'),
-      );
-    }
-    return OutlinedButton.icon(
+    return FilledButton.tonalIcon(
       onPressed: action,
-      icon: Icon(_added ? Icons.check_rounded : Icons.add_road_rounded),
-      label: Text(_added ? 'En mi viaje' : 'Mi viaje'),
+      style: FilledButton.styleFrom(
+        alignment: Alignment.centerLeft,
+        backgroundColor: const Color(0xFFE9F3EF),
+        foregroundColor: AppColors.primaryDark,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+      icon: Container(
+        width: 38,
+        height: 38,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          _added ? Icons.check_rounded : Icons.route_rounded,
+          color: AppColors.primary,
+        ),
+      ),
+      label: Padding(
+        padding: const EdgeInsets.only(left: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              _added ? 'Incluido en tu viaje' : 'Planifica tu visita',
+              style: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            Text(
+              _added
+                  ? 'Lo encontrarás en la sección Mi viaje.'
+                  : 'Añade este destino y organiza tus próximas paradas.',
+              style: const TextStyle(
+                color: AppColors.textLight,
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1347,6 +1354,85 @@ class _SectionTitle extends StatelessWidget {
       color: AppColors.textDark,
       fontSize: 21,
       fontWeight: FontWeight.w900,
+    ),
+  );
+}
+
+class _PlaceStoryCard extends StatelessWidget {
+  const _PlaceStoryCard({required this.description, required this.category});
+
+  final String description;
+  final String category;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Color(0xFF123F36), Color(0xFF1C6958)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x24123F36),
+          blurRadius: 22,
+          offset: Offset(0, 10),
+        ),
+      ],
+    ),
+    child: Stack(
+      children: [
+        const Positioned(
+          right: -14,
+          top: -18,
+          child: Icon(
+            Icons.landscape_rounded,
+            color: Color(0x1FFFFFFF),
+            size: 112,
+          ),
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.auto_awesome_rounded, color: Color(0xFFBFE6D8)),
+                SizedBox(width: 8),
+                Text(
+                  'CONOCE ESTE LUGAR',
+                  style: TextStyle(
+                    color: Color(0xFFBFE6D8),
+                    fontSize: 10,
+                    letterSpacing: 1,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Text(
+              category,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              description,
+              style: const TextStyle(
+                color: Color(0xFFE6F2EE),
+                fontSize: 14,
+                height: 1.55,
+              ),
+            ),
+          ],
+        ),
+      ],
     ),
   );
 }

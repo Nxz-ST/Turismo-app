@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -79,10 +80,21 @@ class _CommunityPlaceDetailScreenState
         body: CustomScrollView(
           slivers: [
             SliverAppBar(
-              expandedHeight: 280,
+              expandedHeight: 380,
               pinned: true,
               backgroundColor: const Color(0xFF62458C),
               foregroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              automaticallyImplyLeading: false,
+              leadingWidth: 66,
+              leading: Padding(
+                padding: const EdgeInsets.only(left: 14),
+                child: _CommunityHeroAction(
+                  tooltip: 'Volver',
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
               title: Text(
                 place['nombre']?.toString() ?? 'Descubrimiento',
                 maxLines: 1,
@@ -93,27 +105,29 @@ class _CommunityPlaceDetailScreenState
                 fontSize: 17,
                 fontWeight: FontWeight.w900,
               ),
+              actions: [
+                _CommunityHeroAction(
+                  tooltip: 'Compartir lugar',
+                  icon: Icons.ios_share_rounded,
+                  onPressed: () => _sharePlace(place),
+                ),
+                const SizedBox(width: 8),
+                _CommunityHeroAction(
+                  tooltip: _saved ? 'Quitar de guardados' : 'Guardar lugar',
+                  icon: _saved
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
+                  onPressed: _toggleSaved,
+                ),
+                const SizedBox(width: 14),
+              ],
               flexibleSpace: FlexibleSpaceBar(background: _hero(place)),
             ),
+            SliverToBoxAdapter(child: _communitySummary(place)),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 116),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 116),
               sliver: SliverList.list(
                 children: [
-                  _communityBadge(),
-                  const SizedBox(height: 12),
-                  Text(
-                    place['nombre']?.toString() ?? 'Descubrimiento',
-                    style: Theme.of(context).textTheme.headlineLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _category(place),
-                    style: const TextStyle(
-                      color: Color(0xFF7655A6),
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
                   PlaceTrustPassportCard(
                     source: 'community',
                     placeId: _placeId,
@@ -208,6 +222,87 @@ class _CommunityPlaceDetailScreenState
     ),
   );
 
+  Future<void> _sharePlace(Map<String, dynamic> place) => Share.share(
+    'Descubre ${place['nombre'] ?? 'un nuevo lugar'} en RutaAmiga.\n'
+    'Un descubrimiento corroborado por la comunidad.',
+    subject: place['nombre']?.toString() ?? 'Descubrimiento RutaAmiga',
+  );
+
+  Widget _communitySummary(Map<String, dynamic> place) {
+    final trust = _trust(place);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
+      decoration: const BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x2462458C),
+            blurRadius: 30,
+            offset: Offset(0, -8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _communityBadge(),
+          const SizedBox(height: 16),
+          Text(
+            place['nombre']?.toString() ?? 'Descubrimiento',
+            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+              fontSize: 32,
+              height: 1.08,
+              letterSpacing: -.7,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(
+                Icons.explore_rounded,
+                color: Color(0xFF7655A6),
+                size: 20,
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  '${_category(place)} · corroborado por viajeros',
+                  style: const TextStyle(
+                    color: AppColors.textLight,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              _CommunitySummaryFact(
+                icon: Icons.photo_library_outlined,
+                label: 'Fotos',
+                value: '${_photos(place).length}',
+              ),
+              const SizedBox(width: 10),
+              _CommunitySummaryFact(
+                icon: Icons.fact_check_outlined,
+                label: 'Aportes',
+                value: '${_updates(place).length}',
+              ),
+              const SizedBox(width: 10),
+              _CommunitySummaryFact(
+                icon: Icons.people_outline_rounded,
+                label: 'Respaldo',
+                value: '${trust?.independentSupporters ?? 0}',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _communityBadge() => Align(
     alignment: Alignment.centerLeft,
     child: Container(
@@ -241,7 +336,14 @@ class _CommunityPlaceDetailScreenState
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(top: BorderSide(color: Color(0xFFE1E9E6))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x24081712),
+            blurRadius: 24,
+            offset: Offset(0, -6),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -259,14 +361,7 @@ class _CommunityPlaceDetailScreenState
               ),
             ),
           ),
-          IconButton(
-            tooltip: _saved ? 'Quitar de guardados' : 'Guardar lugar',
-            onPressed: _toggleSaved,
-            icon: Icon(
-              _saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
-              color: const Color(0xFF7655A6),
-            ),
-          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Semantics(
               button: true,
@@ -719,6 +814,70 @@ class _CommunityProfileCard extends StatelessWidget {
         .toList();
     return resolved.isEmpty ? null : resolved.join(', ');
   }
+}
+
+class _CommunityHeroAction extends StatelessWidget {
+  const _CommunityHeroAction({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    tooltip: tooltip,
+    onPressed: onPressed,
+    style: IconButton.styleFrom(
+      backgroundColor: Colors.black.withValues(alpha: .48),
+      foregroundColor: Colors.white,
+      minimumSize: const Size(44, 44),
+    ),
+    icon: Icon(icon, size: 20),
+  );
+}
+
+class _CommunitySummaryFact extends StatelessWidget {
+  const _CommunitySummaryFact({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Container(
+      constraints: const BoxConstraints(minHeight: 92),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE4DBED)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF7655A6), size: 20),
+          const Spacer(),
+          Text(
+            label,
+            style: const TextStyle(color: AppColors.textLight, fontSize: 9),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _EvolutionMetric extends StatelessWidget {
