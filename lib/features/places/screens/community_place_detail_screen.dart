@@ -10,6 +10,7 @@ import '../models/existing_place_target.dart';
 import '../models/place_trust_model.dart';
 import '../services/place_trust_service.dart';
 import '../widgets/place_trust_passport_card.dart';
+import '../widgets/place_issue_report_button.dart';
 import 'register_place_screen.dart';
 
 class CommunityPlaceDetailScreen extends StatefulWidget {
@@ -144,6 +145,12 @@ class _CommunityPlaceDetailScreenState
                   _communityInformation(place),
                   const SizedBox(height: 26),
                   _contributionPrompt(place),
+                  const SizedBox(height: 8),
+                  PlaceIssueReportButton(
+                    source: 'community',
+                    placeId: _placeId,
+                    placeName: _displayName(place),
+                  ),
                   const SizedBox(height: 20),
                   PlaceTrustPassportCard(
                     source: 'community',

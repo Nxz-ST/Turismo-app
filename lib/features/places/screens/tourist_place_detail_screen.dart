@@ -11,6 +11,7 @@ import '../models/tourist_place_model.dart';
 import '../services/google_places_service.dart';
 import '../services/weather_service.dart';
 import '../widgets/place_trust_passport_card.dart';
+import '../widgets/place_issue_report_button.dart';
 import 'map_screen.dart';
 import 'register_place_screen.dart';
 
@@ -122,6 +123,12 @@ class TouristPlaceDetailScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 22),
                 _ReviewsSection(place: place),
+                const SizedBox(height: 8),
+                PlaceIssueReportButton(
+                  source: 'official',
+                  placeId: place.id.toString(),
+                  placeName: place.nombre,
+                ),
                 const SizedBox(height: 22),
                 _technicalLocation(),
                 const SizedBox(height: 16),
