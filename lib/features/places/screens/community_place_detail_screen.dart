@@ -128,21 +128,51 @@ class _CommunityPlaceDetailScreenState
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 116),
               sliver: SliverList.list(
                 children: [
+                  _communityStory(place),
+                  const SizedBox(height: 26),
                   Text(
-                    'Información comunitaria',
+                    'Lo esencial para tu visita',
                     style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 5),
+                  const Text(
+                    'Información práctica observada directamente por viajeros.',
+                    style: TextStyle(color: AppColors.textLight, fontSize: 12),
                   ),
                   const SizedBox(height: 10),
                   _communityInformation(place),
-                  const SizedBox(height: 24),
-                  _evolutionCard(place),
+                  if (_photos(place).length > 1) ...[
+                    const SizedBox(height: 26),
+                    Text(
+                      'Miradas de la comunidad',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 5),
+                    const Text(
+                      'Fotos aportadas desde el lugar por distintos viajeros.',
+                      style: TextStyle(
+                        color: AppColors.textLight,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _communityPhotos(place),
+                  ],
+                  const SizedBox(height: 26),
+                  _contributionPrompt(place),
                   const SizedBox(height: 20),
                   PlaceTrustPassportCard(
                     source: 'community',
                     placeId: _placeId,
                     initialTrust: _trust(place),
+                    compact: true,
                   ),
                   const SizedBox(height: 24),
+                  Text(
+                    'Ubicación',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 10),
                   _location(place),
                   const SizedBox(height: 18),
                   const Text(
@@ -230,6 +260,8 @@ class _CommunityPlaceDetailScreenState
 
   Widget _communitySummary(Map<String, dynamic> place) {
     final trust = _trust(place);
+    final supporters = trust?.independentSupporters ?? 0;
+    final photos = _photos(place).length;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
       decoration: const BoxDecoration(
@@ -276,27 +308,41 @@ class _CommunityPlaceDetailScreenState
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              _CommunitySummaryFact(
-                icon: Icons.photo_library_outlined,
-                label: 'Fotos',
-                value: '${_photos(place).length}',
-              ),
-              const SizedBox(width: 10),
-              _CommunitySummaryFact(
-                icon: Icons.fact_check_outlined,
-                label: 'Aportes',
-                value: '${_updates(place).length}',
-              ),
-              const SizedBox(width: 10),
-              _CommunitySummaryFact(
-                icon: Icons.people_outline_rounded,
-                label: 'Respaldo',
-                value: '${trust?.independentSupporters ?? 0}',
-              ),
-            ],
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3EDF8),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.verified_user_outlined,
+                  size: 18,
+                  color: Color(0xFF7655A6),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '$supporters ${supporters == 1 ? 'viajero respalda' : 'viajeros respaldan'} este lugar · $photos ${photos == 1 ? 'foto' : 'fotos'}',
+                    style: const TextStyle(
+                      color: Color(0xFF62458C),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Text(
+                  _freshnessShort(trust),
+                  style: const TextStyle(
+                    color: AppColors.textLight,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -369,14 +415,7 @@ class _CommunityPlaceDetailScreenState
               child: OutlinedButton.icon(
                 onPressed: () {
                   HapticFeedback.selectionClick();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => RegisterPlaceScreen(
-                        existingPlace: ExistingPlaceTarget.fromCommunity(place),
-                      ),
-                    ),
-                  );
+                  _openContribution(place);
                 },
                 icon: const Icon(Icons.add_a_photo_outlined),
                 label: const Text('Aportar'),
@@ -388,13 +427,265 @@ class _CommunityPlaceDetailScreenState
     ),
   );
 
-  Widget _evolutionCard(Map<String, dynamic> place) {
-    final updates = _updates(place);
-    final profiles = updates
-        .where((update) => update['answers'] is Map)
-        .map((update) => Map<String, dynamic>.from(update['answers'] as Map))
+  void _openContribution(Map<String, dynamic> place) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RegisterPlaceScreen(
+          existingPlace: ExistingPlaceTarget.fromCommunity(place),
+        ),
+      ),
+    );
+  }
+
+  String _freshnessShort(PlaceTrustModel? trust) {
+    final date = trust?.lastVerifiedAt?.toLocal();
+    if (date == null) return 'Por actualizar';
+    final days = DateTime.now().difference(date).inDays.clamp(0, 99999);
+    if (days == 0) return 'Actualizado hoy';
+    if (days == 1) return 'Actualizado ayer';
+    return 'Hace $days días';
+  }
+
+  List<Map<String, dynamic>> _profiles(Map<String, dynamic> place) =>
+      _updates(place)
+          .where((update) => update['answers'] is Map)
+          .map((update) => Map<String, dynamic>.from(update['answers'] as Map))
+          .toList();
+
+  Widget _communityStory(Map<String, dynamic> place) {
+    final aggregate = _aggregateProfiles(_profiles(place));
+    final narrative = _communityNarrative(place, aggregate);
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF183F36), Color(0xFF27594E)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x24183F36),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, color: Color(0xFFC9F2E3)),
+              SizedBox(width: 8),
+              Text(
+                'Conoce este lugar',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            narrative,
+            style: const TextStyle(
+              color: Color(0xFFEAF6F1),
+              fontSize: 13,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _storyHighlights(aggregate),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _communityNarrative(
+    Map<String, dynamic> place,
+    Map<String, dynamic> aggregate,
+  ) {
+    final activities = _labelsFor(aggregate['activities'], const {
+      'photography': 'fotografía',
+      'walking': 'caminatas',
+      'swimming': 'baño',
+      'nature': 'naturaleza',
+      'culture': 'cultura',
+      'adventure': 'aventura',
+      'relaxation': 'descanso',
+    });
+    final difficulty = _firstLabel(aggregate['access_difficulty'], const {
+      'easy': 'fácil',
+      'moderate': 'moderada',
+      'difficult': 'exigente',
+    });
+    final activityText = activities.isEmpty
+        ? 'conocer un paisaje documentado por la comunidad'
+        : activities.take(3).join(', ');
+    final difficultyText = difficulty == null
+        ? 'La dificultad del acceso aún necesita confirmación.'
+        : 'Los viajeros reportan una dificultad $difficulty.';
+    return '${place['nombre'] ?? 'Este descubrimiento'} es un lugar de tipo ${_category(place).toLowerCase()}, recomendado para $activityText. $difficultyText Revisa las condiciones antes de salir, porque la información puede cambiar.';
+  }
+
+  List<Widget> _storyHighlights(Map<String, dynamic> aggregate) {
+    final highlights = <({IconData icon, String label})>[];
+    final cost = _firstLabel(aggregate['cost_type'], const {
+      'free': 'Ingreso gratuito',
+      'paid': 'Ingreso pagado',
+    });
+    final state = _firstLabel(aggregate['place_state'], const {
+      'open': 'Acceso abierto',
+      'restricted': 'Acceso restringido',
+      'closed': 'Reportado cerrado',
+    });
+    final access = _firstLabel(aggregate['access_type'], const {
+      'walking': 'Acceso a pie',
+      'vehicle': 'Acceso vehicular',
+      'public_transport': 'Transporte público',
+      'mixed': 'Acceso mixto',
+    });
+    if (cost != null) {
+      highlights.add((icon: Icons.payments_outlined, label: cost));
+    }
+    if (state != null) {
+      highlights.add((icon: Icons.door_front_door_outlined, label: state));
+    }
+    if (access != null) {
+      highlights.add((icon: Icons.directions_walk_rounded, label: access));
+    }
+    if (highlights.isEmpty) {
+      highlights.add((
+        icon: Icons.help_outline_rounded,
+        label: 'Información en construcción',
+      ));
+    }
+    return [
+      for (final item in highlights)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: .12),
+            borderRadius: BorderRadius.circular(99),
+            border: Border.all(color: Colors.white.withValues(alpha: .14)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(item.icon, size: 14, color: const Color(0xFFC9F2E3)),
+              const SizedBox(width: 5),
+              Text(
+                item.label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+    ];
+  }
+
+  String? _firstLabel(dynamic raw, Map<String, String> labels) {
+    final values = raw is List ? raw : [raw];
+    for (final value in values) {
+      final label = labels[value?.toString()];
+      if (label != null) return label;
+    }
+    return null;
+  }
+
+  List<String> _labelsFor(dynamic raw, Map<String, String> labels) {
+    if (raw is! List) return const [];
+    return raw
+        .map((value) => labels[value.toString()])
+        .whereType<String>()
+        .toSet()
         .toList();
-    final aggregate = _aggregateProfiles(profiles);
+  }
+
+  Widget _communityPhotos(Map<String, dynamic> place) {
+    final photos = _photos(place);
+    return SizedBox(
+      height: 142,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: photos.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        itemBuilder: (context, index) => GestureDetector(
+          onTap: () => _showPhoto(photos[index]),
+          child: Hero(
+            tag: 'community-photo-${photos[index]}',
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Image.network(
+                photos[index],
+                width: index == 0 ? 210 : 130,
+                height: 142,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 130,
+                  color: const Color(0xFFEDE5F4),
+                  child: const Icon(
+                    Icons.broken_image_outlined,
+                    color: Color(0xFF7655A6),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPhoto(String url) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: .92),
+      builder: (dialogContext) => Dialog.fullscreen(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 1,
+                maxScale: 4,
+                child: Hero(
+                  tag: 'community-photo-$url',
+                  child: Image.network(url, fit: BoxFit.contain),
+                ),
+              ),
+            ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: IconButton.filled(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  style: IconButton.styleFrom(backgroundColor: Colors.white24),
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _contributionPrompt(Map<String, dynamic> place) {
+    final aggregate = _aggregateProfiles(_profiles(place));
     const fields = <String, String>{
       'access_type': 'acceso',
       'access_difficulty': 'dificultad',
@@ -411,89 +702,75 @@ class _CommunityPlaceDetailScreenState
         })
         .map((entry) => entry.value)
         .toList();
-    final confirmed = fields.length - pending.length;
-    final trust = _trust(place);
-    final supporters = trust?.independentSupporters ?? 0;
-
-    return Semantics(
-      label:
-          'Evolución de la ficha: ${_photos(place).length} fotos, ${profiles.length} aportes y $supporters personas la respaldan',
-      child: Container(
-        padding: const EdgeInsets.all(17),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF7F2FB),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFFE1D6ED)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.auto_graph_rounded, color: Color(0xFF7655A6)),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Cómo está creciendo esta ficha',
-                    style: TextStyle(fontWeight: FontWeight.w900),
+    final complete = pending.isEmpty;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7E8),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFF1D9A7)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFE8B8),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(
+                  complete ? Icons.update_rounded : Icons.travel_explore,
+                  color: const Color(0xFF9A6710),
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Text(
+                  complete
+                      ? '¿Sigue igual cuando lo visites?'
+                      : 'Ayuda a completar este lugar',
+                  style: const TextStyle(
+                    color: AppColors.primaryDark,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            complete
+                ? 'Confirma que el acceso y el estado continúan vigentes, o añade una fotografía reciente.'
+                : 'Todavía falta confirmar ${pending.join(', ')}. Tu observación desde el lugar mejora la ficha para todos.',
+            style: const TextStyle(
+              color: AppColors.textLight,
+              fontSize: 12,
+              height: 1.45,
             ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                _EvolutionMetric(
-                  icon: Icons.photo_library_outlined,
-                  value: _photos(place).length,
-                  label: 'Fotos',
-                ),
-                _EvolutionMetric(
-                  icon: Icons.fact_check_outlined,
-                  value: profiles.length,
-                  label: 'Aportes',
-                ),
-                _EvolutionMetric(
-                  icon: Icons.people_outline,
-                  value: supporters,
-                  label: 'Personas',
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(99),
-                    child: LinearProgressIndicator(
-                      value: confirmed / fields.length,
-                      minHeight: 7,
-                      backgroundColor: Colors.white,
-                      color: const Color(0xFF7655A6),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  '$confirmed/${fields.length}',
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              pending.isEmpty
-                  ? 'La información esencial ya fue completada. Nuevos aportes ayudan a mantenerla vigente.'
-                  : 'Aún falta confirmar: ${pending.join(', ')}.',
-              style: const TextStyle(
-                color: AppColors.textLight,
-                fontSize: 11,
-                height: 1.4,
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => _openContribution(place),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF9A6710),
+              ),
+              icon: Icon(
+                complete
+                    ? Icons.fact_check_outlined
+                    : Icons.add_a_photo_outlined,
+              ),
+              label: Text(
+                complete ? 'Confirmar información' : 'Completar ficha',
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -837,77 +1114,6 @@ class _CommunityHeroAction extends StatelessWidget {
       minimumSize: const Size(44, 44),
     ),
     icon: Icon(icon, size: 20),
-  );
-}
-
-class _CommunitySummaryFact extends StatelessWidget {
-  const _CommunitySummaryFact({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) => Expanded(
-    child: Container(
-      constraints: const BoxConstraints(minHeight: 92),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE4DBED)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: const Color(0xFF7655A6), size: 20),
-          const SizedBox(height: 14),
-          Text(
-            label,
-            style: const TextStyle(color: AppColors.textLight, fontSize: 9),
-          ),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-class _EvolutionMetric extends StatelessWidget {
-  const _EvolutionMetric({
-    required this.icon,
-    required this.value,
-    required this.label,
-  });
-
-  final IconData icon;
-  final int value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) => Expanded(
-    child: Column(
-      children: [
-        Icon(icon, color: const Color(0xFF7655A6), size: 20),
-        const SizedBox(height: 5),
-        Text(
-          '$value',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
-        ),
-        Text(
-          label,
-          style: const TextStyle(color: AppColors.textLight, fontSize: 10),
-        ),
-      ],
-    ),
   );
 }
 

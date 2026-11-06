@@ -10,11 +10,13 @@ class PlaceTrustPassportCard extends StatefulWidget {
     required this.source,
     required this.placeId,
     this.initialTrust,
+    this.compact = false,
   });
 
   final String source;
   final String placeId;
   final PlaceTrustModel? initialTrust;
+  final bool compact;
 
   @override
   State<PlaceTrustPassportCard> createState() => _PlaceTrustPassportCardState();
@@ -63,6 +65,8 @@ class _PlaceTrustPassportCardState extends State<PlaceTrustPassportCard> {
       Text(
         trust.source == 'official'
             ? 'Registro oficial complementado con observaciones verificadas de viajeros.'
+            : widget.compact
+            ? '${trust.independentSupporters} ${trust.independentSupporters == 1 ? 'persona respalda' : 'personas respaldan'} esta ficha mediante aportes independientes.'
             : 'Respaldo comunitario calculado con personas únicas; varios envíos de una persona no inflan el resultado.',
         style: const TextStyle(
           color: AppColors.textLight,
@@ -70,34 +74,36 @@ class _PlaceTrustPassportCardState extends State<PlaceTrustPassportCard> {
           height: 1.4,
         ),
       ),
-      const SizedBox(height: 16),
-      Row(
-        children: [
-          Expanded(
-            child: _TrustMetric(
-              icon: Icons.people_alt_outlined,
-              value: '${trust.independentSupporters}',
-              label: 'Personas',
+      if (!widget.compact) ...[
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _TrustMetric(
+                icon: Icons.people_alt_outlined,
+                value: '${trust.independentSupporters}',
+                label: 'Personas',
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _TrustMetric(
-              icon: Icons.photo_camera_back_outlined,
-              value: '${trust.approvedContributors}',
-              label: 'Aportantes',
+            const SizedBox(width: 8),
+            Expanded(
+              child: _TrustMetric(
+                icon: Icons.photo_camera_back_outlined,
+                value: '${trust.approvedContributors}',
+                label: 'Aportantes',
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _TrustMetric(
-              icon: Icons.hiking_outlined,
-              value: '${trust.verifiedVisitors}',
-              label: 'Visitas GPS',
+            const SizedBox(width: 8),
+            Expanded(
+              child: _TrustMetric(
+                icon: Icons.hiking_outlined,
+                value: '${trust.verifiedVisitors}',
+                label: 'Visitas GPS',
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
       const SizedBox(height: 14),
       Row(
         children: [
