@@ -96,18 +96,9 @@ class TouristPlaceDetailScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 116),
             sliver: SliverList.list(
               children: [
-                PlaceTrustPassportCard(
-                  source: 'official',
-                  placeId: place.id.toString(),
-                ),
-                const SizedBox(height: 14),
-                _WeatherSafetyCard(place: place),
-                const SizedBox(height: 22),
                 _PlaceStoryCard(place: place, category: _category),
-                const SizedBox(height: 30),
-                const _SectionTitle('Cerca de aquí'),
-                const SizedBox(height: 12),
-                _NearbyServicesSection(place: place),
+                const SizedBox(height: 18),
+                _WeatherSafetyCard(place: place),
                 if (_hasVisitInformation) ...[
                   const SizedBox(height: 30),
                   const _SectionTitle('Información para tu visita'),
@@ -120,6 +111,15 @@ class TouristPlaceDetailScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _prices(),
                 ],
+                const SizedBox(height: 30),
+                const _SectionTitle('Cerca de aquí'),
+                const SizedBox(height: 12),
+                _NearbyServicesSection(place: place),
+                const SizedBox(height: 26),
+                PlaceTrustPassportCard(
+                  source: 'official',
+                  placeId: place.id.toString(),
+                ),
                 const SizedBox(height: 22),
                 _ReviewsSection(place: place),
                 const SizedBox(height: 22),

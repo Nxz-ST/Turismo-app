@@ -128,20 +128,20 @@ class _CommunityPlaceDetailScreenState
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 116),
               sliver: SliverList.list(
                 children: [
-                  PlaceTrustPassportCard(
-                    source: 'community',
-                    placeId: _placeId,
-                    initialTrust: _trust(place),
-                  ),
-                  const SizedBox(height: 18),
-                  _evolutionCard(place),
-                  const SizedBox(height: 28),
                   Text(
                     'Información comunitaria',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 10),
                   _communityInformation(place),
+                  const SizedBox(height: 24),
+                  _evolutionCard(place),
+                  const SizedBox(height: 20),
+                  PlaceTrustPassportCard(
+                    source: 'community',
+                    placeId: _placeId,
+                    initialTrust: _trust(place),
+                  ),
                   const SizedBox(height: 24),
                   _location(place),
                   const SizedBox(height: 18),
