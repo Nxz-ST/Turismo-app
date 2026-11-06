@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/utils/display_text.dart';
 import '../models/existing_place_target.dart';
 import '../models/place_trust_model.dart';
 import '../services/place_trust_service.dart';
@@ -96,7 +97,7 @@ class _CommunityPlaceDetailScreenState
                 ),
               ),
               title: Text(
-                place['nombre']?.toString() ?? 'Descubrimiento',
+                _displayName(place),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -141,23 +142,6 @@ class _CommunityPlaceDetailScreenState
                   ),
                   const SizedBox(height: 10),
                   _communityInformation(place),
-                  if (_photos(place).length > 1) ...[
-                    const SizedBox(height: 26),
-                    Text(
-                      'Miradas de la comunidad',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      'Fotos aportadas desde el lugar por distintos viajeros.',
-                      style: TextStyle(
-                        color: AppColors.textLight,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _communityPhotos(place),
-                  ],
                   const SizedBox(height: 26),
                   _contributionPrompt(place),
                   const SizedBox(height: 20),
@@ -253,9 +237,9 @@ class _CommunityPlaceDetailScreenState
   );
 
   Future<void> _sharePlace(Map<String, dynamic> place) => Share.share(
-    'Descubre ${place['nombre'] ?? 'un nuevo lugar'} en RutaAmiga.\n'
+    'Descubre ${_displayName(place)} en RutaAmiga.\n'
     'Un descubrimiento corroborado por la comunidad.',
-    subject: place['nombre']?.toString() ?? 'Descubrimiento RutaAmiga',
+    subject: _displayName(place),
   );
 
   Widget _communitySummary(Map<String, dynamic> place) {
@@ -281,7 +265,7 @@ class _CommunityPlaceDetailScreenState
           _communityBadge(),
           const SizedBox(height: 16),
           Text(
-            place['nombre']?.toString() ?? 'Descubrimiento',
+            _displayName(place),
             style: Theme.of(context).textTheme.headlineLarge?.copyWith(
               fontSize: 32,
               height: 1.08,
@@ -534,7 +518,7 @@ class _CommunityPlaceDetailScreenState
     final difficultyText = difficulty == null
         ? 'La dificultad del acceso aún necesita confirmación.'
         : 'Los viajeros reportan una dificultad $difficulty.';
-    return '${place['nombre'] ?? 'Este descubrimiento'} es un lugar de tipo ${_category(place).toLowerCase()}, recomendado para $activityText. $difficultyText Revisa las condiciones antes de salir, porque la información puede cambiar.';
+    return '${_displayName(place)} es un lugar de tipo ${_category(place).toLowerCase()}, recomendado para $activityText. $difficultyText Revisa las condiciones antes de salir, porque la información puede cambiar.';
   }
 
   List<Widget> _storyHighlights(Map<String, dynamic> aggregate) {
@@ -613,75 +597,6 @@ class _CommunityPlaceDetailScreenState
         .whereType<String>()
         .toSet()
         .toList();
-  }
-
-  Widget _communityPhotos(Map<String, dynamic> place) {
-    final photos = _photos(place);
-    return SizedBox(
-      height: 142,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: photos.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (context, index) => GestureDetector(
-          onTap: () => _showPhoto(photos[index]),
-          child: Hero(
-            tag: 'community-photo-${photos[index]}',
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Image.network(
-                photos[index],
-                width: index == 0 ? 210 : 130,
-                height: 142,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 130,
-                  color: const Color(0xFFEDE5F4),
-                  child: const Icon(
-                    Icons.broken_image_outlined,
-                    color: Color(0xFF7655A6),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showPhoto(String url) {
-    showDialog<void>(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: .92),
-      builder: (dialogContext) => Dialog.fullscreen(
-        backgroundColor: Colors.black,
-        child: Stack(
-          children: [
-            Center(
-              child: InteractiveViewer(
-                minScale: 1,
-                maxScale: 4,
-                child: Hero(
-                  tag: 'community-photo-$url',
-                  child: Image.network(url, fit: BoxFit.contain),
-                ),
-              ),
-            ),
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: IconButton.filled(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  style: IconButton.styleFrom(backgroundColor: Colors.white24),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _contributionPrompt(Map<String, dynamic> place) {
@@ -802,10 +717,19 @@ class _CommunityPlaceDetailScreenState
     return PlaceTrustModel.fromJson(Map<String, dynamic>.from(raw));
   }
 
-  String _category(Map<String, dynamic> place) =>
-      place['categoria_ia']?.toString().trim().isNotEmpty == true
-      ? place['categoria_ia'].toString()
-      : 'Lugar natural';
+  String _displayName(Map<String, dynamic> place) {
+    return titleCaseUserText(
+      place['nombre']?.toString(),
+      fallback: 'Descubrimiento',
+    );
+  }
+
+  String _category(Map<String, dynamic> place) {
+    return sentenceCaseUserText(
+      place['categoria_ia']?.toString(),
+      fallback: 'Lugar natural',
+    );
+  }
 
   String _description(Map<String, dynamic> place) {
     final value = place['descripcion']?.toString().trim() ?? '';

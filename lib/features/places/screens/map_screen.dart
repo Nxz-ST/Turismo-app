@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/presence_service.dart';
+import '../../../core/utils/display_text.dart';
 import '../../../core/widgets/main_navigation_bar.dart';
 import '../../routes/screens/suggested_routes_screen.dart';
 
@@ -357,7 +358,10 @@ class _MapScreenState extends State<MapScreen> {
             BitmapDescriptor.hueViolet,
           ),
           infoWindow: InfoWindow(
-            title: report['nombre'] ?? 'Lugar reportado',
+            title: titleCaseUserText(
+              report['nombre']?.toString(),
+              fallback: 'Lugar reportado',
+            ),
             snippet: _reportedStatusLabel(
               report['estado_validacion']?.toString(),
             ),
@@ -479,7 +483,10 @@ class _MapScreenState extends State<MapScreen> {
                 BitmapDescriptor.hueViolet,
               ),
               infoWindow: InfoWindow(
-                title: report['nombre']?.toString() ?? 'Descubrimiento',
+                title: titleCaseUserText(
+                  report['nombre']?.toString(),
+                  fallback: 'Descubrimiento',
+                ),
                 snippet: _reportedStatusLabel(
                   report['estado_validacion']?.toString(),
                 ),
@@ -2028,7 +2035,10 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    report['nombre']?.toString() ?? 'Descubrimiento',
+                    titleCaseUserText(
+                      report['nombre']?.toString(),
+                      fallback: 'Descubrimiento',
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -2038,7 +2048,10 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    report['categoria_ia']?.toString() ?? 'Lugar natural',
+                    sentenceCaseUserText(
+                      report['categoria_ia']?.toString(),
+                      fallback: 'Lugar natural',
+                    ),
                     style: const TextStyle(
                       color: AppColors.textLight,
                       fontSize: 10,
@@ -2236,12 +2249,18 @@ class _MapScreenState extends State<MapScreen> {
     double width = 320,
   }) {
     final fotoUrl = report['foto_url']?.toString();
-    final nombre = report['nombre']?.toString() ?? 'Lugar reportado';
+    final nombre = titleCaseUserText(
+      report['nombre']?.toString(),
+      fallback: 'Lugar reportado',
+    );
     final descripcion =
         report['descripcion']?.toString().trim().isNotEmpty == true
         ? report['descripcion'].toString()
         : 'Información comunitaria en proceso de enriquecimiento.';
-    final categoria = report['categoria_ia']?.toString() ?? 'Sin categoría';
+    final categoria = sentenceCaseUserText(
+      report['categoria_ia']?.toString(),
+      fallback: 'Sin categoría',
+    );
 
     final lat = double.tryParse(report['latitud'].toString()) ?? 0;
     final lng = double.tryParse(report['longitud'].toString()) ?? 0;

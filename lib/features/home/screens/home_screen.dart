@@ -9,6 +9,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/network/backend_api_client.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/presence_service.dart';
+import '../../../core/utils/display_text.dart';
 import '../../../core/widgets/first_run_guide.dart';
 import '../../../core/widgets/main_navigation_bar.dart';
 import '../../auth/screens/login_screen.dart';
@@ -1276,7 +1277,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _communityCard(Map<String, dynamic> discovery) {
     final photoUrl = (discovery['foto_url'] ?? discovery['photo_url'])
         ?.toString();
-    final name = discovery['nombre']?.toString() ?? 'Nuevo descubrimiento';
+    final name = titleCaseUserText(
+      discovery['nombre']?.toString(),
+      fallback: 'Nuevo descubrimiento',
+    );
     return InkWell(
       onTap: () => _openCommunityDiscovery(discovery: discovery),
       borderRadius: BorderRadius.circular(22),
