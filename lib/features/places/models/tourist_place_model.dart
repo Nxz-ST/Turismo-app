@@ -13,6 +13,8 @@ class TouristPlaceModel {
   final double? accessLatitud;
   final double? accessLongitud;
   final String accessNotes;
+  final String source;
+  final String? communityId;
 
   final String descripcion;
   final String tipoIngreso;
@@ -39,6 +41,8 @@ class TouristPlaceModel {
     this.accessLatitud,
     this.accessLongitud,
     this.accessNotes = '',
+    this.source = 'official',
+    this.communityId,
     required this.descripcion,
     required this.tipoIngreso,
     required this.tarifaAdulto,
@@ -69,6 +73,8 @@ class TouristPlaceModel {
         json['access_longitud']?.toString() ?? '',
       ),
       accessNotes: json['access_notes']?.toString() ?? '',
+      source: json['source']?.toString() ?? 'official',
+      communityId: json['community_id']?.toString(),
       descripcion: json['descripcion']?.toString() ?? '',
       tipoIngreso: json['tipo_ingreso']?.toString() ?? '',
       tarifaAdulto: json['tarifa_adulto']?.toString() ?? '',
@@ -99,6 +105,8 @@ class TouristPlaceModel {
         json['access_longitud']?.toString() ?? '',
       ),
       accessNotes: json['access_notes']?.toString() ?? '',
+      source: json['source']?.toString() ?? 'official',
+      communityId: json['community_id']?.toString(),
       descripcion: json['descripcion']?.toString() ?? '',
       tipoIngreso: json['tipo_ingreso']?.toString() ?? '',
       tarifaAdulto: json['tarifa_adulto']?.toString() ?? '',
@@ -129,6 +137,8 @@ class TouristPlaceModel {
         json['access_longitud']?.toString() ?? '',
       ),
       accessNotes: json['access_notes']?.toString() ?? '',
+      source: json['source']?.toString() ?? 'official',
+      communityId: json['community_id']?.toString(),
       descripcion: json['descripcion']?.toString() ?? '',
       tipoIngreso: json['tipo_ingreso']?.toString() ?? '',
       tarifaAdulto: json['tarifa_adulto']?.toString() ?? '',
@@ -138,6 +148,46 @@ class TouristPlaceModel {
       horarioVisita: json['horario_visita']?.toString() ?? '',
       recomendacionesVisita: json['recomendaciones_visita']?.toString() ?? '',
       actividades: json['actividades']?.toString() ?? '',
+    );
+  }
+
+  factory TouristPlaceModel.fromCommunity(Map<String, dynamic> json) {
+    final communityId = json['id']?.toString() ?? '';
+    var stableId = 17;
+    for (final unit in communityId.codeUnits) {
+      stableId = ((stableId * 31) + unit) & 0x3fffffff;
+    }
+    String value(List<String> keys) {
+      for (final key in keys) {
+        final result = json[key]?.toString().trim() ?? '';
+        if (result.isNotEmpty) return result;
+      }
+      return '';
+    }
+
+    return TouristPlaceModel(
+      id: -stableId.abs(),
+      codigo: 0,
+      nombre: value(['nombre', 'name']),
+      categoria: value(['categoria_ia', 'category', 'categoria']),
+      departamento: value(['departamento', 'department']),
+      provincia: value(['provincia', 'province']),
+      distrito: value(['distrito', 'district']),
+      latitud: double.tryParse(value(['latitud', 'latitude'])) ?? 0,
+      longitud: double.tryParse(value(['longitud', 'longitude'])) ?? 0,
+      altitud: double.tryParse(value(['altitud', 'altitude'])) ?? 0,
+      descripcion: value(['descripcion', 'description']),
+      tipoIngreso: '',
+      tarifaAdulto: '',
+      tarifaNino: '',
+      tarifaExtranjero: '',
+      epocaVisita: '',
+      horarioVisita: '',
+      recomendacionesVisita: '',
+      actividades: '',
+      source: 'community',
+      communityId: communityId,
+      coordinateQuality: 'community_verified',
     );
   }
 
@@ -156,6 +206,8 @@ class TouristPlaceModel {
     'access_latitud': accessLatitud,
     'access_longitud': accessLongitud,
     'access_notes': accessNotes,
+    'source': source,
+    'community_id': communityId,
     'descripcion': descripcion,
     'tipo_ingreso': tipoIngreso,
     'tarifa_adulto': tarifaAdulto,
@@ -182,6 +234,8 @@ class TouristPlaceModel {
     accessLatitud: accessLatitud,
     accessLongitud: accessLongitud,
     accessNotes: accessNotes,
+    source: source,
+    communityId: communityId,
     descripcion: descripcion,
     tipoIngreso: tipoIngreso,
     tarifaAdulto: tarifaAdulto,
@@ -194,6 +248,9 @@ class TouristPlaceModel {
   );
 
   bool get hasVerifiedAccess => accessLatitud != null && accessLongitud != null;
+
+  String get libraryKey =>
+      communityId == null ? 'official-$id' : 'community-$communityId';
 
   double get navigationLatitud => accessLatitud ?? latitud;
 

@@ -99,7 +99,7 @@ class _MyTripScreenState extends State<MyTripScreen> {
                   itemBuilder: (_, index) {
                     final place = _places[index];
                     return Container(
-                      key: ValueKey(place.id),
+                      key: ValueKey(place.libraryKey),
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
@@ -367,7 +367,7 @@ class _MyTripScreenState extends State<MyTripScreen> {
       'stops': [
         for (final place in _places)
           {
-            'id': 'official-${place.id}',
+            'id': place.libraryKey,
             'name': place.nombre,
             'description': place.descripcion,
             'latitude': place.navigationLatitud,
@@ -379,8 +379,10 @@ class _MyTripScreenState extends State<MyTripScreen> {
                 : 'attraction',
             'access_notes': place.accessNotes,
             'category': place.categoria,
-            'source': 'official',
-            'validation_status': 'official',
+            'source': place.source,
+            'validation_status': place.source == 'community'
+                ? 'validated'
+                : 'official',
             'district': place.distrito,
             'province': place.provincia,
             'department': place.departamento,

@@ -54,12 +54,15 @@ class TravelLibraryService {
   Future<bool> addToTrip(TouristPlaceModel place) async {
     final state = await _loadSyncedState();
     final items = _decodePlaces(state['trip']);
-    if (items.any((item) => item.id == place.id)) return false;
+    if (items.any((item) => item.libraryKey == place.libraryKey)) return false;
     items.add(place);
     state['trip'] = _encodePlaces(items);
     await _saveAndSync(state);
     return true;
   }
+
+  Future<bool> isInTrip(TouristPlaceModel place) async =>
+      (await trip()).any((item) => item.libraryKey == place.libraryKey);
 
   Future<void> removeFromTrip(int placeId) async {
     final state = await _loadSyncedState();

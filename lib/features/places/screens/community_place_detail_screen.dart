@@ -7,11 +7,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/display_text.dart';
 import '../models/existing_place_target.dart';
+import '../models/tourist_place_model.dart';
 import '../models/place_trust_model.dart';
 import '../services/place_trust_service.dart';
 import '../widgets/place_trust_passport_card.dart';
 import '../widgets/place_issue_report_button.dart';
 import 'register_place_screen.dart';
+import '../../profile/services/travel_library_service.dart';
 
 class CommunityPlaceDetailScreen extends StatefulWidget {
   const CommunityPlaceDetailScreen({super.key, required this.initialPlace});
@@ -28,6 +30,7 @@ class _CommunityPlaceDetailScreenState
   late final String _placeId = widget.initialPlace['id'].toString();
   int _heroIndex = 0;
   bool _saved = false;
+  bool _inTrip = false;
   late final Future<Map<String, dynamic>> _future = PlaceTrustService()
       .getCommunityPlace(_placeId)
       .catchError((_) => widget.initialPlace);
@@ -38,6 +41,14 @@ class _CommunityPlaceDetailScreenState
   void initState() {
     super.initState();
     _loadSavedState();
+    _loadTripState();
+  }
+
+  Future<void> _loadTripState() async {
+    final inTrip = await TravelLibraryService.instance.isInTrip(
+      TouristPlaceModel.fromCommunity(widget.initialPlace),
+    );
+    if (mounted) setState(() => _inTrip = inTrip);
   }
 
   Future<void> _loadSavedState() async {
@@ -300,6 +311,14 @@ class _CommunityPlaceDetailScreenState
             ],
           ),
           const SizedBox(height: 18),
+          FilledButton.tonalIcon(
+            onPressed: _inTrip ? null : () => _addToTrip(place),
+            icon: Icon(
+              _inTrip ? Icons.check_rounded : Icons.playlist_add_rounded,
+            ),
+            label: Text(_inTrip ? 'Añadido a Mi viaje' : 'Añadir a Mi viaje'),
+          ),
+          const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
             decoration: BoxDecoration(
@@ -424,6 +443,24 @@ class _CommunityPlaceDetailScreenState
       MaterialPageRoute(
         builder: (_) => RegisterPlaceScreen(
           existingPlace: ExistingPlaceTarget.fromCommunity(place),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addToTrip(Map<String, dynamic> place) async {
+    HapticFeedback.selectionClick();
+    final added = await TravelLibraryService.instance.addToTrip(
+      TouristPlaceModel.fromCommunity(place),
+    );
+    if (!mounted) return;
+    setState(() => _inTrip = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          added
+              ? 'Lugar añadido a Mi viaje.'
+              : 'Este lugar ya estaba en Mi viaje.',
         ),
       ),
     );

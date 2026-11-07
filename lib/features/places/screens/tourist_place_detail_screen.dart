@@ -1163,11 +1163,11 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
     children: [
       Row(
         children: [
-          const Expanded(child: _SectionTitle('Tu experiencia')),
+          const Expanded(child: _SectionTitle('Mi recuerdo')),
           TextButton.icon(
             onPressed: _addReview,
             icon: const Icon(Icons.rate_review_outlined, size: 18),
-            label: const Text('Añadir nota'),
+            label: const Text('Guardar recuerdo'),
           ),
         ],
       ),
@@ -1181,7 +1181,7 @@ class _ReviewsSectionState extends State<_ReviewsSection> {
             borderRadius: BorderRadius.circular(20),
           ),
           child: const Text(
-            'Guarda una valoración y algo que quieras recordar de tu visita.',
+            'Guarda de forma privada una valoración y algo que quieras recordar de tu visita.',
             style: TextStyle(color: AppColors.textLight),
           ),
         )
