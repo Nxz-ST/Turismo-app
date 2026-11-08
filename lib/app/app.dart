@@ -3,6 +3,7 @@ import '../core/theme/app_theme.dart';
 import '../core/services/app_accessibility_service.dart';
 import '../core/widgets/pending_profile_prompt.dart';
 import '../core/widgets/presence_lifecycle.dart';
+import '../core/widgets/connectivity_status_banner.dart';
 import '../features/auth/screens/welcome_screen.dart';
 import '../features/home/screens/home_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -33,12 +34,16 @@ class RutaAmigaApp extends StatelessWidget {
           title: 'RutaAmiga',
           theme: theme,
           builder: (context, child) {
-            if (!accessibility.largeText || child == null) return child!;
+            if (child == null) return const SizedBox.shrink();
+            Widget result = child;
             final media = MediaQuery.of(context);
-            return MediaQuery(
-              data: media.copyWith(textScaler: const TextScaler.linear(1.15)),
-              child: child,
-            );
+            if (accessibility.largeText) {
+              result = MediaQuery(
+                data: media.copyWith(textScaler: const TextScaler.linear(1.15)),
+                child: result,
+              );
+            }
+            return ConnectivityStatusBanner(child: result);
           },
           home:
               initialHome ??

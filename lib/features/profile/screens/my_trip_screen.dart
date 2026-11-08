@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/location_service.dart';
+import '../../../core/services/local_notification_service.dart';
 import '../../places/models/tourist_place_model.dart';
 import '../../places/screens/community_place_detail_screen.dart';
 import '../../places/screens/tourist_place_detail_screen.dart';
 import '../../routes/screens/custom_route_builder_screen.dart';
 import '../../routes/screens/suggested_routes_screen.dart';
 import '../../places/services/weather_service.dart';
+import '../../places/services/google_places_service.dart';
 import '../../routes/services/route_readiness_service.dart';
 import '../services/trip_progress_service.dart';
 import '../services/travel_library_service.dart';
+import '../services/trip_schedule_service.dart';
 
 class MyTripScreen extends StatefulWidget {
   const MyTripScreen({super.key});
@@ -27,6 +31,8 @@ class _MyTripScreenState extends State<MyTripScreen> {
   Set<String> _completed = {};
   List<String> _alerts = const [];
   bool _loading = true;
+  bool _preparingOffline = false;
+  DateTime? _departure;
 
   @override
   void initState() {
@@ -37,10 +43,12 @@ class _MyTripScreenState extends State<MyTripScreen> {
   Future<void> _load() async {
     final places = await _library.trip();
     final completed = await TripProgressService().completed();
+    final departure = await TripScheduleService().load();
     if (!mounted) return;
     setState(() {
       _places = places;
       _completed = completed;
+      _departure = departure;
       _loading = false;
     });
     await _loadAlerts(places);
@@ -102,6 +110,7 @@ class _MyTripScreenState extends State<MyTripScreen> {
         ? _EmptyTrip(onCreate: _openBuilder)
         : Column(
             children: [
+              _scheduleCard(),
               _progressHeader(),
               if (_alerts.isNotEmpty) _alertCard(),
               Container(
@@ -289,6 +298,162 @@ class _MyTripScreenState extends State<MyTripScreen> {
           const SizedBox(height: 10),
           LinearProgressIndicator(value: progress, minHeight: 7),
         ],
+      ),
+    );
+  }
+
+  Widget _scheduleCard() => Container(
+    margin: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+    padding: const EdgeInsets.all(15),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Color(0xFF0E735C), Color(0xFF164E43)],
+      ),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Row(
+      children: [
+        const CircleAvatar(
+          backgroundColor: Colors.white24,
+          foregroundColor: Colors.white,
+          child: Icon(Icons.calendar_month_outlined),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _departure == null
+                    ? '¿Cuándo empieza tu viaje?'
+                    : _formatDeparture(_departure!),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                _departure == null
+                    ? 'Programa la salida para tener la ruta lista.'
+                    : 'Ruta guardada y recordatorio visible en tu planificación.',
+                style: const TextStyle(color: Colors.white70, fontSize: 11),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          tooltip: 'Preparar sin conexión',
+          onPressed: _preparingOffline ? null : _prepareOffline,
+          color: Colors.white,
+          icon: _preparingOffline
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.download_for_offline_outlined),
+        ),
+        TextButton(
+          onPressed: _pickDeparture,
+          style: TextButton.styleFrom(foregroundColor: Colors.white),
+          child: Text(_departure == null ? 'Programar' : 'Cambiar'),
+        ),
+      ],
+    ),
+  );
+
+  String _formatDeparture(DateTime value) {
+    const months = [
+      'ene',
+      'feb',
+      'mar',
+      'abr',
+      'may',
+      'jun',
+      'jul',
+      'ago',
+      'sep',
+      'oct',
+      'nov',
+      'dic',
+    ];
+    final minute = value.minute.toString().padLeft(2, '0');
+    return 'Salida: ${value.day} ${months[value.month - 1]} · ${value.hour}:$minute';
+  }
+
+  Future<void> _pickDeparture() async {
+    final now = DateTime.now();
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _departure?.isAfter(now) == true ? _departure! : now,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: DateTime(now.year + 2),
+      helpText: 'Fecha de salida',
+    );
+    if (date == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(
+        _departure ?? now.add(const Duration(hours: 1)),
+      ),
+      helpText: 'Hora de salida',
+    );
+    if (time == null) return;
+    final value = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    await TripScheduleService().save(value);
+    await LocalNotificationService.instance.scheduleTripReminder(
+      value,
+      _places.first.nombre,
+    );
+    if (!mounted) return;
+    setState(() => _departure = value);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Salida programada: ${_formatDeparture(value)}.')),
+    );
+  }
+
+  Future<void> _prepareOffline() async {
+    setState(() => _preparingOffline = true);
+    final photos = GooglePlacesService();
+    var cached = 0;
+    for (final place in _places) {
+      var url = place.primaryPhotoUrl;
+      Map<String, String>? headers;
+      if (url.isEmpty && place.source != 'community') {
+        url =
+            await photos.getTouristPhotoUrl(
+              name: place.nombre,
+              lat: place.latitud,
+              lng: place.longitud,
+            ) ??
+            '';
+        headers = photos.photoHeaders;
+      }
+      if (url.isEmpty || !mounted) continue;
+      try {
+        await precacheImage(
+          CachedNetworkImageProvider(url, headers: headers),
+          context,
+        );
+        cached++;
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    setState(() => _preparingOffline = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Viaje preparado: ${_places.length} fichas y $cached fotografías disponibles.',
+        ),
       ),
     );
   }

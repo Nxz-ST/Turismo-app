@@ -2232,14 +2232,12 @@ class _MapScreenState extends State<MapScreen> {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       scrollDirection: Axis.horizontal,
-      children: [_communityPlaceCard(report, width: 340)],
+      children: [_communityPlaceCard(report)],
     );
   }
 
-  Widget _communityPlaceCard(
-    Map<String, dynamic> report, {
-    double width = 320,
-  }) {
+  Widget _communityPlaceCard(Map<String, dynamic> report, {double? width}) {
+    width ??= _carouselCardWidth(340);
     final fotoUrl = report['foto_url']?.toString();
     final nombre = titleCaseUserText(
       report['nombre']?.toString(),
@@ -2525,7 +2523,7 @@ class _MapScreenState extends State<MapScreen> {
   Widget _emptyCard(String message) {
     return Center(
       child: Container(
-        width: 310,
+        width: _carouselCardWidth(310),
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
           color: AppColors.white,
@@ -2540,6 +2538,11 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  double _carouselCardWidth(double maximum) {
+    final available = MediaQuery.sizeOf(context).width - 40;
+    return available.clamp(260.0, maximum).toDouble();
+  }
+
   Widget _touristPlaceCard(
     TouristPlaceModel place,
     Future<String?> photoFuture,
@@ -2550,7 +2553,7 @@ class _MapScreenState extends State<MapScreen> {
     return GestureDetector(
       onTap: () => _selectTouristPlace(place),
       child: Container(
-        width: 310,
+        width: _carouselCardWidth(310),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
         decoration: BoxDecoration(
           color: AppColors.white,
@@ -2705,7 +2708,7 @@ class _MapScreenState extends State<MapScreen> {
     return GestureDetector(
       onTap: () => _focusServicePlace(place),
       child: Container(
-        width: 320,
+        width: _carouselCardWidth(320),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.white,

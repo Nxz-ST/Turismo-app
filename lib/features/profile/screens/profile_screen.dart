@@ -397,14 +397,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 10),
                   _contributionSummary(data),
                   const SizedBox(height: 26),
-                  _title('Mi actividad'),
+                  _title('Planifica tu viaje'),
                   const SizedBox(height: 10),
-                  _tile(
-                    Icons.notifications_outlined,
-                    'Novedades de tu actividad',
-                    'Validaciones, resultados y cuestionarios',
-                    const ActivityInboxScreen(),
-                  ),
                   _tile(
                     Icons.luggage_outlined,
                     'Mi viaje',
@@ -430,6 +424,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const PlaceComparisonScreen(),
                   ),
                   _tile(
+                    Icons.backpack_outlined,
+                    'Preparar recorrido',
+                    'Lista esencial y recomendaciones',
+                    const TripPreparationScreen(),
+                  ),
+                  const SizedBox(height: 20),
+                  _title('Comunidad'),
+                  const SizedBox(height: 10),
+                  _tile(
+                    Icons.notifications_outlined,
+                    'Novedades de tu actividad',
+                    'Validaciones, resultados y cuestionarios',
+                    const ActivityInboxScreen(),
+                  ),
+                  _tile(
                     Icons.landscape_outlined,
                     'Mis aportes',
                     'Revisa su estado y resultado',
@@ -440,12 +449,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'Diario de exploración',
                     'Recuerdos y notas privadas',
                     const ExplorerJournalScreen(),
-                  ),
-                  _tile(
-                    Icons.backpack_outlined,
-                    'Preparar recorrido',
-                    'Lista esencial y recomendaciones',
-                    const TripPreparationScreen(),
                   ),
                   if (isAdmin)
                     _tile(
