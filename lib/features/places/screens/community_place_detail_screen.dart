@@ -701,6 +701,11 @@ class _CommunityPlaceDetailScreenState
         .map((entry) => entry.value)
         .toList();
     final complete = pending.isEmpty;
+    final lastVerified = _trust(place)?.lastVerifiedAt;
+    final daysSinceVerification = lastVerified == null
+        ? null
+        : DateTime.now().difference(lastVerified.toLocal()).inDays;
+    final stale = daysSinceVerification == null || daysSinceVerification > 30;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -727,7 +732,9 @@ class _CommunityPlaceDetailScreenState
               const SizedBox(width: 11),
               Expanded(
                 child: Text(
-                  complete
+                  complete && stale
+                      ? 'Este lugar necesita una actualización'
+                      : complete
                       ? '¿Sigue igual cuando lo visites?'
                       : 'Ayuda a completar este lugar',
                   style: const TextStyle(
@@ -741,7 +748,9 @@ class _CommunityPlaceDetailScreenState
           ),
           const SizedBox(height: 10),
           Text(
-            complete
+            complete && stale
+                ? 'La última comprobación tiene ${daysSinceVerification == null ? 'fecha pendiente' : '$daysSinceVerification días'}. Confirma acceso, estado o una fotografía reciente desde el lugar.'
+                : complete
                 ? 'Confirma que el acceso y el estado continúan vigentes, o añade una fotografía reciente.'
                 : 'Todavía falta confirmar ${pending.join(', ')}. Tu observación desde el lugar mejora la ficha para todos.',
             style: const TextStyle(

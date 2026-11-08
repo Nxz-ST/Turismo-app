@@ -9,6 +9,9 @@ import '../../places/screens/community_place_detail_screen.dart';
 import '../../places/screens/tourist_place_detail_screen.dart';
 import '../../routes/screens/custom_route_builder_screen.dart';
 import '../../routes/screens/suggested_routes_screen.dart';
+import '../../places/services/weather_service.dart';
+import '../../routes/services/route_readiness_service.dart';
+import '../services/trip_progress_service.dart';
 import '../services/travel_library_service.dart';
 
 class MyTripScreen extends StatefulWidget {
@@ -21,6 +24,8 @@ class MyTripScreen extends StatefulWidget {
 class _MyTripScreenState extends State<MyTripScreen> {
   final _library = TravelLibraryService.instance;
   List<TouristPlaceModel> _places = [];
+  Set<String> _completed = {};
+  List<String> _alerts = const [];
   bool _loading = true;
 
   @override
@@ -31,11 +36,40 @@ class _MyTripScreenState extends State<MyTripScreen> {
 
   Future<void> _load() async {
     final places = await _library.trip();
+    final completed = await TripProgressService().completed();
     if (!mounted) return;
     setState(() {
       _places = places;
+      _completed = completed;
       _loading = false;
     });
+    await _loadAlerts(places);
+  }
+
+  Future<void> _loadAlerts(List<TouristPlaceModel> places) async {
+    var alerts = <String>[];
+    if (places.isNotEmpty) {
+      try {
+        final first = places.first;
+        final weather = await WeatherService().forecast(
+          latitude: first.latitud,
+          longitude: first.longitud,
+        );
+        alerts = const RouteReadinessService()
+            .evaluate(
+              stops: [_stopFromPlace(first)],
+              weather: weather,
+              routeDurationMinutes: places.length * 90,
+            )
+            .alerts;
+      } catch (_) {
+        alerts = [
+          'Consulta el clima y las condiciones de acceso antes de salir.',
+        ];
+      }
+    }
+    if (!mounted) return;
+    setState(() => _alerts = alerts);
   }
 
   @override
@@ -68,6 +102,8 @@ class _MyTripScreenState extends State<MyTripScreen> {
         ? _EmptyTrip(onCreate: _openBuilder)
         : Column(
             children: [
+              _progressHeader(),
+              if (_alerts.isNotEmpty) _alertCard(),
               Container(
                 width: double.infinity,
                 margin: const EdgeInsets.fromLTRB(20, 8, 20, 12),
@@ -100,6 +136,7 @@ class _MyTripScreenState extends State<MyTripScreen> {
                   },
                   itemBuilder: (_, index) {
                     final place = _places[index];
+                    final completed = _completed.contains(place.libraryKey);
                     return InkWell(
                       key: ValueKey(place.libraryKey),
                       borderRadius: BorderRadius.circular(20),
@@ -115,9 +152,13 @@ class _MyTripScreenState extends State<MyTripScreen> {
                         child: Row(
                           children: [
                             CircleAvatar(
-                              backgroundColor: AppColors.primary,
+                              backgroundColor: completed
+                                  ? AppColors.success
+                                  : AppColors.primary,
                               foregroundColor: Colors.white,
-                              child: Text('${index + 1}'),
+                              child: completed
+                                  ? const Icon(Icons.check_rounded)
+                                  : Text('${index + 1}'),
                             ),
                             const SizedBox(width: 13),
                             Expanded(
@@ -139,6 +180,26 @@ class _MyTripScreenState extends State<MyTripScreen> {
                                     ),
                                   ),
                                 ],
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: completed
+                                  ? 'Marcar como pendiente'
+                                  : 'Marcar como visitado',
+                              onPressed: () async {
+                                await TripProgressService().setCompleted(
+                                  place.libraryKey,
+                                  !completed,
+                                );
+                                await _load();
+                              },
+                              icon: Icon(
+                                completed
+                                    ? Icons.check_circle_rounded
+                                    : Icons.radio_button_unchecked_rounded,
+                                color: completed
+                                    ? AppColors.success
+                                    : AppColors.textLight,
                               ),
                             ),
                             IconButton(
@@ -193,6 +254,80 @@ class _MyTripScreenState extends State<MyTripScreen> {
             ],
           ),
   );
+
+  Widget _progressHeader() {
+    final done = _places
+        .where((place) => _completed.contains(place.libraryKey))
+        .length;
+    final progress = _places.isEmpty ? 0.0 : done / _places.length;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE1E9E6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.flag_outlined, color: AppColors.primary),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  done == _places.length
+                      ? '¡Viaje completado!'
+                      : '$done de ${_places.length} lugares visitados',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+              Text('${(progress * 100).round()}%'),
+            ],
+          ),
+          const SizedBox(height: 10),
+          LinearProgressIndicator(value: progress, minHeight: 7),
+        ],
+      ),
+    );
+  }
+
+  Widget _alertCard() => Container(
+    margin: const EdgeInsets.fromLTRB(20, 8, 20, 4),
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFF5E7),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0xFFF1D4A3)),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Icon(
+          Icons.notifications_active_outlined,
+          color: Color(0xFF9A6710),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            _alerts.take(2).join('\n'),
+            style: const TextStyle(fontSize: 11, height: 1.4),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  static Map<String, dynamic> _stopFromPlace(TouristPlaceModel place) => {
+    'name': place.nombre,
+    'category': place.categoria,
+    'activities': place.actividades,
+    'altitude_m': place.altitud,
+    'coordinate_quality': place.coordinateQuality,
+    'source': place.source,
+    'difficulty': 'moderada',
+  };
 
   Future<void> _openRoutePreview() => _openRouteDetail();
 

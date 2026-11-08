@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/app_network_image.dart';
@@ -19,6 +20,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
   final _library = TravelLibraryService.instance;
   final _photos = GooglePlacesService();
   late Future<List<TouristPlaceModel>> _future;
+  bool _preparing = false;
 
   @override
   void initState() {
@@ -45,9 +47,10 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
         }
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
-          itemCount: places.length,
+          itemCount: places.length + 1,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
-          itemBuilder: (_, index) => _card(places[index]),
+          itemBuilder: (_, index) =>
+              index == 0 ? _offlineHeader(places) : _card(places[index - 1]),
         );
       },
     ),
@@ -138,6 +141,25 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                const SizedBox(height: 5),
+                const Row(
+                  children: [
+                    Icon(
+                      Icons.offline_pin_outlined,
+                      size: 14,
+                      color: AppColors.primary,
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'Ficha disponible sin conexión',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -153,6 +175,79 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
       ),
     ),
   );
+
+  Widget _offlineHeader(List<TouristPlaceModel> places) => Container(
+    padding: const EdgeInsets.all(17),
+    decoration: BoxDecoration(
+      color: AppColors.primarySoft,
+      borderRadius: BorderRadius.circular(22),
+    ),
+    child: Row(
+      children: [
+        const Icon(
+          Icons.download_for_offline_outlined,
+          color: AppColors.primary,
+        ),
+        const SizedBox(width: 11),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Preparar sin conexión',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+              SizedBox(height: 3),
+              Text(
+                'Conserva fichas, ubicaciones y fotografías consultadas.',
+                style: TextStyle(fontSize: 10, color: AppColors.textLight),
+              ),
+            ],
+          ),
+        ),
+        TextButton(
+          onPressed: _preparing ? null : () => _prepareOffline(places),
+          child: Text(_preparing ? 'Preparando…' : 'Descargar'),
+        ),
+      ],
+    ),
+  );
+
+  Future<void> _prepareOffline(List<TouristPlaceModel> places) async {
+    setState(() => _preparing = true);
+    var cached = 0;
+    for (final place in places) {
+      var url = place.primaryPhotoUrl;
+      Map<String, String>? headers;
+      if (url.isEmpty && place.source != 'community') {
+        url =
+            await _photos.getTouristPhotoUrl(
+              name: place.nombre,
+              lat: place.latitud,
+              lng: place.longitud,
+            ) ??
+            '';
+        headers = _photos.photoHeaders;
+      }
+      if (url.isEmpty || !mounted) continue;
+      try {
+        await precacheImage(
+          CachedNetworkImageProvider(url, headers: headers),
+          context,
+        );
+        cached++;
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    setState(() => _preparing = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Contenido preparado: ${places.length} fichas y $cached fotografías.',
+        ),
+      ),
+    );
+  }
 }
 
 class _EmptySaved extends StatelessWidget {

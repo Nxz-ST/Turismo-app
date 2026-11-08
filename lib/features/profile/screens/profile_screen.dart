@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/services/app_accessibility_service.dart';
 import '../../../core/widgets/main_navigation_bar.dart';
 import '../../admin/screens/admin_review_screen.dart';
 import '../../auth/screens/login_screen.dart';
@@ -14,6 +15,8 @@ import 'activity_inbox_screen.dart';
 import 'my_trip_screen.dart';
 import 'passport_screen.dart';
 import 'saved_places_screen.dart';
+import 'place_comparison_screen.dart';
+import 'personalized_recommendations_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -198,69 +201,110 @@ class _ProfileScreenState extends State<ProfileScreen> {
     var notifications =
         preferences.getBool('rutaamiga_notifications_v1') ?? true;
     var presence = preferences.getBool('rutaamiga_presence_support_v1') ?? true;
+    var largeText = AppAccessibilityService.instance.largeText;
+    var highContrast = AppAccessibilityService.instance.highContrast;
     if (!mounted) return;
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Configuración',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 12),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  secondary: const Icon(Icons.notifications_outlined),
-                  title: const Text(
-                    'Notificaciones',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Configuración',
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
-                  subtitle: const Text('Aportes y recordatorios de viaje'),
-                  value: notifications,
-                  onChanged: (value) async {
-                    setSheetState(() => notifications = value);
-                    await preferences.setBool(
-                      'rutaamiga_notifications_v1',
-                      value,
-                    );
-                  },
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  secondary: const Icon(Icons.location_history_outlined),
-                  title: const Text(
-                    'Respaldar visitas con ubicación',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    secondary: const Icon(Icons.notifications_outlined),
+                    title: const Text(
+                      'Notificaciones',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    subtitle: const Text('Aportes y recordatorios de viaje'),
+                    value: notifications,
+                    onChanged: (value) async {
+                      setSheetState(() => notifications = value);
+                      await preferences.setBool(
+                        'rutaamiga_notifications_v1',
+                        value,
+                      );
+                    },
                   ),
-                  subtitle: const Text(
-                    'Muestras temporales para validar aportes por 24 horas',
+                  const Divider(),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    secondary: const Icon(Icons.text_increase_rounded),
+                    title: const Text(
+                      'Texto más grande',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    subtitle: const Text(
+                      'Aumenta el tamaño en toda la aplicación',
+                    ),
+                    value: largeText,
+                    onChanged: (value) async {
+                      setSheetState(() => largeText = value);
+                      await AppAccessibilityService.instance.setLargeText(
+                        value,
+                      );
+                    },
                   ),
-                  value: presence,
-                  onChanged: (value) async {
-                    setSheetState(() => presence = value);
-                    await preferences.setBool(
-                      'rutaamiga_presence_support_v1',
-                      value,
-                    );
-                  },
-                ),
-                const ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.lock_outline),
-                  title: Text(
-                    'Privacidad de ubicación',
-                    style: TextStyle(fontWeight: FontWeight.w800),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    secondary: const Icon(Icons.contrast_rounded),
+                    title: const Text(
+                      'Contraste reforzado',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    subtitle: const Text(
+                      'Diferencia mejor botones, bordes y acciones',
+                    ),
+                    value: highContrast,
+                    onChanged: (value) async {
+                      setSheetState(() => highContrast = value);
+                      await AppAccessibilityService.instance.setHighContrast(
+                        value,
+                      );
+                    },
                   ),
-                  subtitle: Text('Tu ubicación no se muestra públicamente'),
-                ),
-              ],
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    secondary: const Icon(Icons.location_history_outlined),
+                    title: const Text(
+                      'Respaldar visitas con ubicación',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    subtitle: const Text(
+                      'Muestras temporales para validar aportes por 24 horas',
+                    ),
+                    value: presence,
+                    onChanged: (value) async {
+                      setSheetState(() => presence = value);
+                      await preferences.setBool(
+                        'rutaamiga_presence_support_v1',
+                        value,
+                      );
+                    },
+                  ),
+                  const ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: Icon(Icons.lock_outline),
+                    title: Text(
+                      'Privacidad de ubicación',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    subtitle: Text('Tu ubicación no se muestra públicamente'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -368,10 +412,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const MyTripScreen(),
                   ),
                   _tile(
+                    Icons.auto_awesome_outlined,
+                    'Recomendado para ti',
+                    'Sugerencias según tu estilo y guardados',
+                    const PersonalizedRecommendationsScreen(),
+                  ),
+                  _tile(
                     Icons.favorite_outline_rounded,
                     'Lugares guardados',
                     'Tus favoritos para volver cuando quieras',
                     const SavedPlacesScreen(),
+                  ),
+                  _tile(
+                    Icons.compare_arrows_rounded,
+                    'Comparar destinos',
+                    'Clima, altitud, acceso y procedencia',
+                    const PlaceComparisonScreen(),
                   ),
                   _tile(
                     Icons.landscape_outlined,
