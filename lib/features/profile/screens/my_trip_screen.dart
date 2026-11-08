@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/app_state_view.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/local_notification_service.dart';
 import '../../places/models/tourist_place_model.dart';
@@ -105,7 +106,9 @@ class _MyTripScreenState extends State<MyTripScreen> {
       ],
     ),
     body: _loading
-        ? const Center(child: CircularProgressIndicator())
+        ? const AppStateView.loading(
+            message: 'Organizando tus paradas y condiciones del viaje…',
+          )
         : _places.isEmpty
         ? _EmptyTrip(onCreate: _openBuilder)
         : Column(

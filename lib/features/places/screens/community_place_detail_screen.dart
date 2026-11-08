@@ -147,6 +147,12 @@ class _CommunityPlaceDetailScreenState
                   ),
                   const SizedBox(height: 10),
                   _communityInformation(place),
+                  if (_updates(place).isNotEmpty) ...[
+                    const SizedBox(height: 22),
+                    _communityTimeline(place),
+                  ],
+                  const SizedBox(height: 22),
+                  _sourceClarityCard(place),
                   const SizedBox(height: 26),
                   _contributionPrompt(place),
                   const SizedBox(height: 8),
@@ -848,6 +854,173 @@ class _CommunityPlaceDetailScreenState
         fontSize: 15,
         height: 1.6,
       ),
+    );
+  }
+
+  Widget _sourceClarityCard(Map<String, dynamic> place) {
+    final trust = _trust(place);
+    final supporters = trust?.independentSupporters ?? 0;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4EFF9),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE2D7EE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.compare_arrows_rounded, color: Color(0xFF7655A6)),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Cómo interpretar esta ficha',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _sourceRow(
+            Icons.people_alt_outlined,
+            'Información comunitaria',
+            '$supporters ${supporters == 1 ? 'persona independiente respalda' : 'personas independientes respaldan'} la evidencia y las condiciones observadas.',
+            const Color(0xFF7655A6),
+          ),
+          const SizedBox(height: 10),
+          _sourceRow(
+            Icons.verified_outlined,
+            'Registro oficial',
+            'Este descubrimiento todavía no figura como registro oficial MINCETUR. RutaAmiga lo mantiene claramente diferenciado.',
+            AppColors.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sourceRow(IconData icon, String title, String detail, Color color) =>
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 19, color: color),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  detail,
+                  style: const TextStyle(
+                    color: AppColors.textLight,
+                    fontSize: 10,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+  Widget _communityTimeline(Map<String, dynamic> place) {
+    final updates = _updates(place).reversed.take(4).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Evolución del lugar',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Observaciones recientes que mantienen vigente esta ficha.',
+          style: TextStyle(color: AppColors.textLight, fontSize: 11),
+        ),
+        const SizedBox(height: 12),
+        for (var index = 0; index < updates.length; index++)
+          _timelineUpdate(updates[index], index == updates.length - 1),
+      ],
+    );
+  }
+
+  Widget _timelineUpdate(Map<String, dynamic> update, bool last) {
+    final answers = update['answers'] is Map
+        ? Map<String, dynamic>.from(update['answers'] as Map)
+        : const <String, dynamic>{};
+    final labels = <String>[];
+    if (answers['place_state'] != null) labels.add('estado confirmado');
+    if (answers['access_type'] != null) labels.add('acceso actualizado');
+    if (answers['services'] is List &&
+        (answers['services'] as List).isNotEmpty) {
+      labels.add('servicios observados');
+    }
+    final rawDate = update['created_at']?.toString();
+    final date = rawDate == null ? null : DateTime.tryParse(rawDate)?.toLocal();
+    final dateLabel = date == null
+        ? 'Fecha pendiente'
+        : '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            Container(
+              width: 28,
+              height: 28,
+              decoration: const BoxDecoration(
+                color: AppColors.primarySoft,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.fact_check_outlined,
+                size: 15,
+                color: AppColors.primary,
+              ),
+            ),
+            if (!last)
+              Container(width: 2, height: 42, color: const Color(0xFFDCE7E2)),
+          ],
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 3, bottom: 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  dateLabel,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  labels.isEmpty
+                      ? 'Aporte incorporado a la ficha.'
+                      : labels.join(' · '),
+                  style: const TextStyle(
+                    color: AppColors.textLight,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

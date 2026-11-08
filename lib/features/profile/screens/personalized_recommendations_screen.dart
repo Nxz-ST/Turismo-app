@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/app_network_image.dart';
+import '../../../core/widgets/app_state_view.dart';
 import '../../places/models/tourist_place_model.dart';
 import '../../places/screens/tourist_place_detail_screen.dart';
 import '../../places/services/google_places_service.dart';
@@ -120,12 +121,28 @@ class _PersonalizedRecommendationsScreenState
       future: _future,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppStateView.loading(
+            message: 'Buscando lugares compatibles con tu estilo…',
+          );
+        }
+        if (snapshot.hasError) {
+          return AppStateView(
+            icon: Icons.cloud_off_outlined,
+            title: 'No pudimos preparar tus recomendaciones',
+            message: 'Revisa tu conexión y vuelve a intentarlo.',
+            actionLabel: 'Reintentar',
+            onAction: () => setState(() => _future = _load()),
+          );
         }
         final data = snapshot.data;
         if (data == null || data.places.isEmpty) {
-          return const Center(
-            child: Text('No encontramos recomendaciones todavía.'),
+          return AppStateView(
+            icon: Icons.travel_explore_outlined,
+            title: 'Estamos aprendiendo tus gustos',
+            message:
+                'Guarda algunos lugares o actualiza tu estilo viajero para recibir mejores sugerencias.',
+            actionLabel: 'Actualizar',
+            onAction: () => setState(() => _future = _load()),
           );
         }
         return RefreshIndicator(
