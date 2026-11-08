@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/presence_service.dart';
 import '../../../core/utils/display_text.dart';
@@ -126,15 +127,10 @@ class _ExplorePlaceSearchDelegate extends SearchDelegate<TouristPlaceModel?> {
                       Icons.landscape_outlined,
                       color: AppColors.primary,
                     )
-                  : Image.network(
-                      snapshot.data!,
+                  : AppNetworkImage(
+                      url: snapshot.data!,
                       headers: _photos.photoHeaders,
                       fit: BoxFit.cover,
-                      filterQuality: FilterQuality.medium,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.landscape_outlined,
-                        color: AppColors.primary,
-                      ),
                     ),
             ),
           ),
@@ -1920,14 +1916,10 @@ class _MapScreenState extends State<MapScreen> {
                 ),
                 child: snapshot.data == null
                     ? const Icon(Icons.landscape, color: AppColors.primary)
-                    : Image.network(
-                        snapshot.data!,
+                    : AppNetworkImage(
+                        url: snapshot.data!,
                         headers: _googlePlacesService.photoHeaders,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.landscape,
-                          color: AppColors.primary,
-                        ),
                       ),
               ),
             ),

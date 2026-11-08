@@ -5,6 +5,8 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/location_service.dart';
 import '../../places/models/tourist_place_model.dart';
+import '../../places/screens/community_place_detail_screen.dart';
+import '../../places/screens/tourist_place_detail_screen.dart';
 import '../../routes/screens/custom_route_builder_screen.dart';
 import '../../routes/screens/suggested_routes_screen.dart';
 import '../services/travel_library_service.dart';
@@ -98,62 +100,66 @@ class _MyTripScreenState extends State<MyTripScreen> {
                   },
                   itemBuilder: (_, index) {
                     final place = _places[index];
-                    return Container(
+                    return InkWell(
                       key: ValueKey(place.libraryKey),
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFE4EBE8)),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            child: Text('${index + 1}'),
-                          ),
-                          const SizedBox(width: 13),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  place.nombre,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${place.distrito}, ${place.provincia}',
-                                  style: const TextStyle(
-                                    color: AppColors.textLight,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              ],
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => _openPlace(place),
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFE4EBE8)),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              child: Text('${index + 1}'),
                             ),
-                          ),
-                          IconButton(
-                            onPressed: () async {
-                              await _library.removeFromTrip(place.id);
-                              await _load();
-                            },
-                            icon: const Icon(Icons.close_rounded),
-                          ),
-                          ReorderableDragStartListener(
-                            index: index,
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 12,
+                            const SizedBox(width: 13),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    place.nombre,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${place.distrito}, ${place.provincia}',
+                                    style: const TextStyle(
+                                      color: AppColors.textLight,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              child: Icon(Icons.drag_handle_rounded),
                             ),
-                          ),
-                        ],
+                            IconButton(
+                              onPressed: () async {
+                                await _library.removeFromTrip(place);
+                                await _load();
+                              },
+                              icon: const Icon(Icons.close_rounded),
+                            ),
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 12,
+                                ),
+                                child: Icon(Icons.drag_handle_rounded),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
@@ -189,6 +195,17 @@ class _MyTripScreenState extends State<MyTripScreen> {
   );
 
   Future<void> _openRoutePreview() => _openRouteDetail();
+
+  Future<void> _openPlace(TouristPlaceModel place) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => place.source == 'community'
+            ? CommunityPlaceDetailScreen(initialPlace: place.toCommunityJson())
+            : TouristPlaceDetailScreen(place: place, distance: 0),
+      ),
+    );
+  }
 
   Future<void> _prepareNavigation() => _openRouteDetail();
 

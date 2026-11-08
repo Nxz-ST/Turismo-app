@@ -10,6 +10,7 @@ import '../../places/screens/my_contributions_screen.dart';
 import '../../places/services/report_place_service.dart';
 import '../../routes/services/route_visit_service.dart';
 import 'explorer_tools_screens.dart';
+import 'activity_inbox_screen.dart';
 import 'my_trip_screen.dart';
 import 'passport_screen.dart';
 import 'saved_places_screen.dart';
@@ -299,6 +300,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       IconButton.filledTonal(
+                        tooltip: 'Novedades',
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ActivityInboxScreen(),
+                          ),
+                        ),
+                        icon: const Icon(Icons.notifications_outlined),
+                      ),
+                      const SizedBox(width: 7),
+                      IconButton.filledTonal(
                         onPressed: _showSettings,
                         icon: const Icon(Icons.settings_outlined),
                       ),
@@ -343,6 +355,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 26),
                   _title('Mi actividad'),
                   const SizedBox(height: 10),
+                  _tile(
+                    Icons.notifications_outlined,
+                    'Novedades de tu actividad',
+                    'Validaciones, resultados y cuestionarios',
+                    const ActivityInboxScreen(),
+                  ),
                   _tile(
                     Icons.luggage_outlined,
                     'Mi viaje',

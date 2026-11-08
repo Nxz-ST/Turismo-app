@@ -33,13 +33,15 @@ class TravelLibraryService {
     return _decodePlaces(state['trip']);
   }
 
-  Future<bool> isFavorite(int placeId) async =>
-      (await favorites()).any((place) => place.id == placeId);
+  Future<bool> isFavorite(TouristPlaceModel place) async =>
+      (await favorites()).any((item) => item.libraryKey == place.libraryKey);
 
   Future<bool> toggleFavorite(TouristPlaceModel place) async {
     final state = await _loadSyncedState();
     final items = _decodePlaces(state['favorites']);
-    final index = items.indexWhere((item) => item.id == place.id);
+    final index = items.indexWhere(
+      (item) => item.libraryKey == place.libraryKey,
+    );
     final added = index < 0;
     if (added) {
       items.insert(0, place);
@@ -64,10 +66,10 @@ class TravelLibraryService {
   Future<bool> isInTrip(TouristPlaceModel place) async =>
       (await trip()).any((item) => item.libraryKey == place.libraryKey);
 
-  Future<void> removeFromTrip(int placeId) async {
+  Future<void> removeFromTrip(TouristPlaceModel place) async {
     final state = await _loadSyncedState();
     final items = _decodePlaces(state['trip'])
-      ..removeWhere((item) => item.id == placeId);
+      ..removeWhere((item) => item.libraryKey == place.libraryKey);
     state['trip'] = _encodePlaces(items);
     await _saveAndSync(state);
   }

@@ -15,6 +15,7 @@ class TouristPlaceModel {
   final String accessNotes;
   final String source;
   final String? communityId;
+  final String primaryPhotoUrl;
 
   final String descripcion;
   final String tipoIngreso;
@@ -43,6 +44,7 @@ class TouristPlaceModel {
     this.accessNotes = '',
     this.source = 'official',
     this.communityId,
+    this.primaryPhotoUrl = '',
     required this.descripcion,
     required this.tipoIngreso,
     required this.tarifaAdulto,
@@ -75,6 +77,7 @@ class TouristPlaceModel {
       accessNotes: json['access_notes']?.toString() ?? '',
       source: json['source']?.toString() ?? 'official',
       communityId: json['community_id']?.toString(),
+      primaryPhotoUrl: json['primary_photo_url']?.toString() ?? '',
       descripcion: json['descripcion']?.toString() ?? '',
       tipoIngreso: json['tipo_ingreso']?.toString() ?? '',
       tarifaAdulto: json['tarifa_adulto']?.toString() ?? '',
@@ -107,6 +110,7 @@ class TouristPlaceModel {
       accessNotes: json['access_notes']?.toString() ?? '',
       source: json['source']?.toString() ?? 'official',
       communityId: json['community_id']?.toString(),
+      primaryPhotoUrl: json['primary_photo_url']?.toString() ?? '',
       descripcion: json['descripcion']?.toString() ?? '',
       tipoIngreso: json['tipo_ingreso']?.toString() ?? '',
       tarifaAdulto: json['tarifa_adulto']?.toString() ?? '',
@@ -139,6 +143,7 @@ class TouristPlaceModel {
       accessNotes: json['access_notes']?.toString() ?? '',
       source: json['source']?.toString() ?? 'official',
       communityId: json['community_id']?.toString(),
+      primaryPhotoUrl: json['primary_photo_url']?.toString() ?? '',
       descripcion: json['descripcion']?.toString() ?? '',
       tipoIngreso: json['tipo_ingreso']?.toString() ?? '',
       tarifaAdulto: json['tarifa_adulto']?.toString() ?? '',
@@ -165,6 +170,9 @@ class TouristPlaceModel {
       return '';
     }
 
+    final photos = json['photos'];
+    final directPhoto = value(['foto_url', 'photo_url', 'primary_photo_url']);
+
     return TouristPlaceModel(
       id: -stableId.abs(),
       codigo: 0,
@@ -188,6 +196,11 @@ class TouristPlaceModel {
       source: 'community',
       communityId: communityId,
       coordinateQuality: 'community_verified',
+      primaryPhotoUrl: directPhoto.isNotEmpty
+          ? directPhoto
+          : photos is List && photos.isNotEmpty
+          ? photos.first.toString()
+          : '',
     );
   }
 
@@ -208,6 +221,7 @@ class TouristPlaceModel {
     'access_notes': accessNotes,
     'source': source,
     'community_id': communityId,
+    'primary_photo_url': primaryPhotoUrl,
     'descripcion': descripcion,
     'tipo_ingreso': tipoIngreso,
     'tarifa_adulto': tarifaAdulto,
@@ -236,6 +250,7 @@ class TouristPlaceModel {
     accessNotes: accessNotes,
     source: source,
     communityId: communityId,
+    primaryPhotoUrl: primaryPhotoUrl,
     descripcion: descripcion,
     tipoIngreso: tipoIngreso,
     tarifaAdulto: tarifaAdulto,
@@ -251,6 +266,21 @@ class TouristPlaceModel {
 
   String get libraryKey =>
       communityId == null ? 'official-$id' : 'community-$communityId';
+
+  Map<String, dynamic> toCommunityJson() => {
+    'id': communityId,
+    'nombre': nombre,
+    'categoria_ia': categoria,
+    'descripcion': descripcion,
+    'latitud': latitud,
+    'longitud': longitud,
+    'altitud': altitud,
+    'departamento': departamento,
+    'provincia': provincia,
+    'distrito': distrito,
+    'foto_url': primaryPhotoUrl,
+    if (primaryPhotoUrl.isNotEmpty) 'photos': [primaryPhotoUrl],
+  };
 
   double get navigationLatitud => accessLatitud ?? latitud;
 

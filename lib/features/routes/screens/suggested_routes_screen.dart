@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/presence_service.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../../../core/widgets/main_navigation_bar.dart';
 import '../../../core/widgets/presence_lifecycle.dart';
 import '../../places/services/google_routes_service.dart';
@@ -1362,22 +1363,17 @@ class _RouteCardState extends State<_RouteCard> {
 
   Widget _featuredPhoto() {
     if (_directPhotoUrl != null && _directPhotoUrl!.isNotEmpty) {
-      return Image.network(
-        _directPhotoUrl!,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _photoFallback(),
-      );
+      return AppNetworkImage(url: _directPhotoUrl!, fit: BoxFit.cover);
     }
     return FutureBuilder<String?>(
       future: _photoFuture,
       builder: (_, snapshot) {
         final url = snapshot.data;
         if (url != null && url.isNotEmpty) {
-          return Image.network(
-            url,
+          return AppNetworkImage(
+            url: url,
             headers: _photos.photoHeaders,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _photoFallback(),
           );
         }
         return _photoFallback();
@@ -2261,14 +2257,7 @@ class _SuggestedRouteDetailScreenState
     final longitude = (stop['longitude'] as num).toDouble();
     final directPhoto = stop['photo_url']?.toString().trim() ?? '';
     if (directPhoto.isNotEmpty) {
-      return Image.network(
-        directPhoto,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const ColoredBox(
-          color: AppColors.primarySoft,
-          child: Icon(Icons.landscape_rounded, color: AppColors.primary),
-        ),
-      );
+      return AppNetworkImage(url: directPhoto, fit: BoxFit.cover);
     }
     return FutureBuilder<String?>(
       future: _photos.getTouristPhotoUrl(
@@ -2285,14 +2274,10 @@ class _SuggestedRouteDetailScreenState
                 size: 32,
               ),
             )
-          : Image.network(
-              snapshot.data!,
+          : AppNetworkImage(
+              url: snapshot.data!,
               headers: _photos.photoHeaders,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const ColoredBox(
-                color: AppColors.primarySoft,
-                child: Icon(Icons.landscape_rounded, color: AppColors.primary),
-              ),
             ),
     );
   }

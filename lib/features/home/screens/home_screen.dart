@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../../../core/network/backend_api_client.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/presence_service.dart';
@@ -471,14 +472,10 @@ class _HomeScreenState extends State<HomeScreen> {
               color: AppColors.primary,
             ),
           )
-        : Image.network(
-            snapshot.data!,
+        : AppNetworkImage(
+            url: snapshot.data!,
             headers: _photos.photoHeaders,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const ColoredBox(
-              color: AppColors.primarySoft,
-              child: Icon(Icons.landscape, color: AppColors.primary),
-            ),
           ),
   );
 
@@ -1296,11 +1293,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (photoUrl != null && photoUrl.isNotEmpty)
               ClipRRect(
                 borderRadius: BorderRadius.circular(22),
-                child: Image.network(
-                  photoUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
+                child: AppNetworkImage(url: photoUrl, fit: BoxFit.cover),
               ),
             DecoratedBox(
               decoration: BoxDecoration(

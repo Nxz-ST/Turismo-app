@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../../../core/utils/display_text.dart';
 import '../models/existing_place_target.dart';
 import '../models/tourist_place_model.dart';
@@ -35,8 +35,6 @@ class _CommunityPlaceDetailScreenState
       .getCommunityPlace(_placeId)
       .catchError((_) => widget.initialPlace);
 
-  static const _savedKey = 'rutaamiga_saved_community_places_v1';
-
   @override
   void initState() {
     super.initState();
@@ -52,25 +50,19 @@ class _CommunityPlaceDetailScreenState
   }
 
   Future<void> _loadSavedState() async {
-    final preferences = await SharedPreferences.getInstance();
-    if (!mounted) return;
-    setState(
-      () => _saved =
-          preferences.getStringList(_savedKey)?.contains(_placeId) ?? false,
+    final saved = await TravelLibraryService.instance.isFavorite(
+      TouristPlaceModel.fromCommunity(widget.initialPlace),
     );
+    if (!mounted) return;
+    setState(() => _saved = saved);
   }
 
-  Future<void> _toggleSaved() async {
-    final preferences = await SharedPreferences.getInstance();
-    final saved = preferences.getStringList(_savedKey)?.toSet() ?? <String>{};
-    if (_saved) {
-      saved.remove(_placeId);
-    } else {
-      saved.add(_placeId);
-    }
-    await preferences.setStringList(_savedKey, saved.toList());
+  Future<void> _toggleSaved(Map<String, dynamic> source) async {
+    final added = await TravelLibraryService.instance.toggleFavorite(
+      TouristPlaceModel.fromCommunity(source),
+    );
     if (!mounted) return;
-    setState(() => _saved = !_saved);
+    setState(() => _saved = added);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -130,7 +122,7 @@ class _CommunityPlaceDetailScreenState
                   icon: _saved
                       ? Icons.bookmark_rounded
                       : Icons.bookmark_border_rounded,
-                  onPressed: _toggleSaved,
+                  onPressed: () => _toggleSaved(place),
                 ),
                 const SizedBox(width: 14),
               ],
@@ -203,11 +195,8 @@ class _CommunityPlaceDetailScreenState
         PageView.builder(
           itemCount: photos.length,
           onPageChanged: (index) => setState(() => _heroIndex = index),
-          itemBuilder: (_, index) => Image.network(
-            photos[index],
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _heroFallback(),
-          ),
+          itemBuilder: (_, index) =>
+              AppNetworkImage(url: photos[index], fit: BoxFit.cover),
         ),
         if (photos.length > 1)
           Positioned(

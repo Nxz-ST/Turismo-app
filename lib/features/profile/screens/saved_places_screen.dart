@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../../places/models/tourist_place_model.dart';
+import '../../places/screens/community_place_detail_screen.dart';
 import '../../places/screens/tourist_place_detail_screen.dart';
 import '../../places/services/google_places_service.dart';
 import '../services/travel_library_service.dart';
@@ -56,7 +58,9 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
     onTap: () => Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => TouristPlaceDetailScreen(place: place, distance: 0),
+        builder: (_) => place.source == 'community'
+            ? CommunityPlaceDetailScreen(initialPlace: place.toCommunityJson())
+            : TouristPlaceDetailScreen(place: place, distance: 0),
       ),
     ).then((_) => _reload()),
     child: Ink(
@@ -73,30 +77,28 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
             child: SizedBox(
               width: 88,
               height: 88,
-              child: FutureBuilder<String?>(
-                future: _photos.getTouristPhotoUrl(
-                  name: place.nombre,
-                  lat: place.latitud,
-                  lng: place.longitud,
-                ),
-                builder: (_, snapshot) => snapshot.data == null
-                    ? const ColoredBox(
-                        color: AppColors.primarySoft,
-                        child: Icon(Icons.landscape, color: AppColors.primary),
-                      )
-                    : Image.network(
-                        snapshot.data!,
-                        headers: _photos.photoHeaders,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const ColoredBox(
-                          color: AppColors.primarySoft,
-                          child: Icon(
-                            Icons.broken_image_outlined,
-                            color: AppColors.primary,
-                          ),
-                        ),
+              child: place.source == 'community'
+                  ? AppNetworkImage(url: place.primaryPhotoUrl)
+                  : FutureBuilder<String?>(
+                      future: _photos.getTouristPhotoUrl(
+                        name: place.nombre,
+                        lat: place.latitud,
+                        lng: place.longitud,
                       ),
-              ),
+                      builder: (_, snapshot) => snapshot.data == null
+                          ? const ColoredBox(
+                              color: AppColors.primarySoft,
+                              child: Icon(
+                                Icons.landscape,
+                                color: AppColors.primary,
+                              ),
+                            )
+                          : AppNetworkImage(
+                              url: snapshot.data!,
+                              headers: _photos.photoHeaders,
+                              fit: BoxFit.cover,
+                            ),
+                    ),
             ),
           ),
           const SizedBox(width: 14),
@@ -115,17 +117,23 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${place.provincia}, ${place.departamento}',
+                  place.source == 'community'
+                      ? 'Descubrimiento comunitario · ${place.categoria}'
+                      : '${place.provincia}, ${place.departamento}',
                   style: const TextStyle(
                     color: AppColors.textLight,
                     fontSize: 12,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Disponible sin conexión',
+                Text(
+                  place.source == 'community'
+                      ? 'Corroborado por RutaAmiga'
+                      : 'Registro oficial MINCETUR',
                   style: TextStyle(
-                    color: AppColors.success,
+                    color: place.source == 'community'
+                        ? const Color(0xFF7655A6)
+                        : AppColors.success,
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),

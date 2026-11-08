@@ -4,6 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/constants/app_colors.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../../../core/services/location_service.dart';
 import '../../profile/services/travel_library_service.dart';
 import '../models/existing_place_target.dart';
@@ -568,22 +569,10 @@ class _ProgressiveNetworkPhoto extends StatelessWidget {
   final bool large;
 
   @override
-  Widget build(BuildContext context) => Image.network(
-    large ? photo.largeUrl : photo.thumbnailUrl,
+  Widget build(BuildContext context) => AppNetworkImage(
+    url: large ? photo.largeUrl : photo.thumbnailUrl,
     headers: service.headersFor(photo),
     fit: large ? BoxFit.contain : BoxFit.cover,
-    frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-      if (wasSynchronouslyLoaded) return child;
-      return AnimatedOpacity(
-        opacity: frame == null ? 0 : 1,
-        duration: const Duration(milliseconds: 260),
-        curve: Curves.easeOut,
-        child: child,
-      );
-    },
-    loadingBuilder: (context, child, progress) =>
-        progress == null ? child : const _GalleryLoading(),
-    errorBuilder: (_, __, ___) => const _PhotoFallback(),
   );
 }
 
@@ -735,7 +724,7 @@ class _FavoriteButtonState extends State<_FavoriteButton> {
   @override
   void initState() {
     super.initState();
-    TravelLibraryService.instance.isFavorite(widget.place.id).then((value) {
+    TravelLibraryService.instance.isFavorite(widget.place).then((value) {
       if (mounted) setState(() => _favorite = value);
     });
   }

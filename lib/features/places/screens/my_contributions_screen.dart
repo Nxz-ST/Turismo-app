@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/errors/friendly_error.dart';
+import '../../../core/widgets/app_network_image.dart';
 import '../services/report_place_service.dart';
 import '../widgets/evidence_status_badge.dart';
 import 'register_place_screen.dart';
@@ -238,16 +239,10 @@ class _ContributionCard extends StatelessWidget {
                           color: AppColors.primary,
                         ),
                       )
-                    : Image.network(
-                        photo,
+                    : AppNetworkImage(
+                        url: photo,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => ColoredBox(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          child: const Icon(
-                            Icons.broken_image_outlined,
-                            color: AppColors.primary,
-                          ),
-                        ),
+                        fallbackIcon: Icons.broken_image_outlined,
                       ),
               ),
             ),

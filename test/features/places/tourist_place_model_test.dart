@@ -11,6 +11,7 @@ void main() {
       'latitud': -11.99,
       'longitud': -76.83,
       'descripcion': 'Descubrimiento corroborado.',
+      'foto_url': 'https://example.com/cascada.jpg',
     };
 
     test('creates a stable community identity', () {
@@ -32,6 +33,7 @@ void main() {
       expect(restored.nombre, original.nombre);
       expect(restored.latitud, original.latitud);
       expect(restored.longitud, original.longitud);
+      expect(restored.primaryPhotoUrl, 'https://example.com/cascada.jpg');
     });
 
     test('official places preserve their original identity', () {
