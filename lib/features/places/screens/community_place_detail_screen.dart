@@ -13,6 +13,7 @@ import '../services/place_trust_service.dart';
 import '../widgets/place_trust_passport_card.dart';
 import '../widgets/place_issue_report_button.dart';
 import 'register_place_screen.dart';
+import '../../profile/screens/my_trip_screen.dart';
 import '../../profile/services/travel_library_service.dart';
 
 class CommunityPlaceDetailScreen extends StatefulWidget {
@@ -299,14 +300,6 @@ class _CommunityPlaceDetailScreenState
               ),
             ],
           ),
-          const SizedBox(height: 18),
-          FilledButton.tonalIcon(
-            onPressed: _inTrip ? null : () => _addToTrip(place),
-            icon: Icon(
-              _inTrip ? Icons.check_rounded : Icons.playlist_add_rounded,
-            ),
-            label: Text(_inTrip ? 'Añadido a Mi viaje' : 'Añadir a Mi viaje'),
-          ),
           const SizedBox(height: 14),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
@@ -343,10 +336,67 @@ class _CommunityPlaceDetailScreenState
               ],
             ),
           ),
+          const SizedBox(height: 12),
+          _tripAction(place),
         ],
       ),
     );
   }
+
+  Widget _tripAction(Map<String, dynamic> place) => Align(
+    alignment: Alignment.centerLeft,
+    child: Semantics(
+      button: true,
+      label: _inTrip
+          ? 'Abrir este lugar en Mi viaje'
+          : 'Planificar una visita a este lugar',
+      child: Material(
+        color: _inTrip ? const Color(0xFFE7F2ED) : const Color(0xFFF4F7F5),
+        borderRadius: BorderRadius.circular(99),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(99),
+          onTap: _inTrip
+              ? () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MyTripScreen()),
+                )
+              : () => _addToTrip(place),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _inTrip
+                      ? Icons.check_circle_outline_rounded
+                      : Icons.event_available_outlined,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  _inTrip ? 'En Mi viaje' : 'Planificar visita',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (_inTrip) ...[
+                  const SizedBox(width: 5),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 17,
+                    color: AppColors.primary,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 
   Widget _communityBadge() => Align(
     alignment: Alignment.centerLeft,
