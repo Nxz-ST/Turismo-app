@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/app_network_image.dart';
 import '../../../core/services/location_service.dart';
+import '../../benefits/widgets/place_benefits_card.dart';
 import '../../profile/services/travel_library_service.dart';
 import '../models/existing_place_target.dart';
 import '../models/tourist_place_model.dart';
@@ -101,6 +102,14 @@ class TouristPlaceDetailScreen extends StatelessWidget {
                 _PlaceStoryCard(place: place, category: _category),
                 const SizedBox(height: 18),
                 _WeatherSafetyCard(place: place),
+                const SizedBox(height: 18),
+                PlaceBenefitsCard(
+                  placeKey: 'official_${place.id}',
+                  placeName: place.nombre,
+                  category: _category,
+                  locationLabel:
+                      '${place.distrito}, ${place.provincia}, ${place.departamento}',
+                ),
                 if (_hasVisitInformation) ...[
                   const SizedBox(height: 30),
                   const _SectionTitle('Información para tu visita'),

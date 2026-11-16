@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../legal/screens/privacy_center_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -465,6 +466,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     'Editar perfil viajero',
                     'Nombre, descripción y estilo',
                     () => _editProfile(data),
+                  ),
+                  _actionTile(
+                    Icons.verified_user_outlined,
+                    'Privacidad y consentimiento',
+                    'Mis datos de viajero, términos y derechos',
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PrivacyCenterScreen(),
+                      ),
+                    ),
                   ),
                   _actionTile(
                     Icons.settings_outlined,

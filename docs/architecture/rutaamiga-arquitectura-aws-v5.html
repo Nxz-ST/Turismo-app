@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Arquitectura RutaAmiga</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1600px; height: 1150px; background: #fff; font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: #1d2b2a; }
+  #c { position: relative; width: 1600px; height: 1150px; }
+  .title { position: absolute; left: 30px; top: 18px; font-size: 26px; font-weight: 800; color: #173d35; }
+  .subtitle { position: absolute; left: 30px; top: 52px; font-size: 14px; color: #5d6f6b; }
+  #s { position: absolute; left: 0; top: 80px; width: 1600px; height: 1070px; }
+  .band { position: absolute; left: 20px; width: 1560px; border: 1.5px solid; border-radius: 6px; }
+  .band .lab { position: absolute; left: 0; top: 0; bottom: 0; width: 36px; border-right: 1.5px solid; display: flex; align-items: center; justify-content: center; }
+  .band .lab span { transform: rotate(-90deg); white-space: nowrap; font-weight: 800; font-size: 15px; }
+  .ui { top: 0; height: 270px; border-color: #5b84c4; } .ui .lab { border-color: #5b84c4; background: #e7effb; color: #2f5d9e; }
+  .sv { top: 290px; height: 500px; border-color: #9a7fb7; } .sv .lab { border-color: #9a7fb7; background: #f1ebf7; color: #5f4386; }
+  .dt { top: 810px; height: 250px; border-color: #7fae7a; } .dt .lab { border-color: #7fae7a; background: #eaf4e8; color: #3d6e38; }
+  .box { position: absolute; border: 1.5px solid; border-radius: 6px; background: #fff; overflow: hidden; }
+  .box h3 { font-size: 15px; font-weight: 800; text-align: center; padding: 7px 6px; border-bottom: 1.5px solid; }
+  .box .body { padding: 10px 14px; font-size: 13.5px; line-height: 1.45; display: flex; gap: 12px; align-items: center; }
+  .ic { flex: 0 0 auto; width: 54px; height: 54px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .blue { border-color: #5b84c4; } .blue h3 { background: #dbe7f8; border-color: #5b84c4; } .blue .ic { background: #e7effb; }
+  .purple { border-color: #9a7fb7; } .purple h3 { background: #e6dcf0; border-color: #9a7fb7; } .purple .ic { background: #f1ebf7; }
+  .orange { border-color: #e0a64a; } .orange h3 { background: #fdeccd; border-color: #e0a64a; } .orange .ic { background: #fff4e0; }
+  .green { border-color: #7fae7a; } .green h3 { background: #dcefd8; border-color: #7fae7a; } .green .ic { background: #eaf4e8; }
+  .grey { border-color: #8f9a98; } .grey h3 { background: #e9eeed; border-color: #8f9a98; } .grey .ic { background: #f2f5f4; }
+  .ec2 { position: absolute; left: 70px; top: 315px; width: 1170px; height: 460px; border: 2.5px dashed #e07b16; border-radius: 10px; background: #fffaf3; }
+  .ec2tag { position: absolute; left: 86px; top: 303px; background: #e07b16; color: #fff; font-weight: 800; font-size: 13.5px; padding: 4px 12px; border-radius: 5px; }
+  .ext { position: absolute; left: 1262px; top: 315px; width: 300px; height: 460px; border: 2px dashed #8f9a98; border-radius: 10px; background: #fafbfb; }
+  .exttag { position: absolute; left: 1278px; top: 303px; background: #6d7a78; color: #fff; font-weight: 800; font-size: 13.5px; padding: 4px 12px; border-radius: 5px; }
+  .port { display: inline-block; font-family: Menlo, monospace; font-size: 11.5px; background: #eef1f0; border-radius: 4px; padding: 0 5px; color: #44524f; }
+  .chips { display: flex; justify-content: space-around; padding: 14px 8px; }
+  .chip { text-align: center; font-size: 13px; font-weight: 600; width: 118px; }
+  .chip .dot { width: 58px; height: 58px; border-radius: 50%; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 26px; border: 3px solid; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px dashed #ddd2e8; font-size: 13.5px; }
+  .row:last-child { border-bottom: none; }
+  .row b { min-width: 0; }
+  .mini { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; background: #f1ebf7; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .note { font-size: 11.5px; color: #6c7a77; }
+  svg { position: absolute; left: 0; top: 0; overflow: visible; }
+  .lbl { font-size: 12.5px; font-weight: 600; fill: #33413e; paint-order: stroke; stroke: #fff; stroke-width: 5px; }
+</style>
+</head>
+<body>
+<div id="c">
+  <div class="title">RutaAmiga · Arquitectura del sistema desplegado</div>
+  <div class="subtitle">Aplicación Android (APK) · Backend, motor de IA y panel en un servidor AWS EC2 · Datos en servicios gestionados en la nube</div>
+  <div id="s">
+    <div class="band ui"><div class="lab"><span>Interfaz de usuario</span></div></div>
+    <div class="band sv"><div class="lab"><span>Servicios</span></div></div>
+    <div class="band dt"><div class="lab"><span>Datos</span></div></div>
+
+    <!-- Interfaz -->
+    <div class="box blue" style="left:80px;top:30px;width:330px;height:215px">
+      <h3>Aplicación móvil · APK Android</h3>
+      <div class="body"><div class="ic">📱</div>
+        <div><b>Flutter</b><br>Mapas y rutas<br>Foto + GPS · Seguimiento<br>Consentimiento y perfil</div></div>
+    </div>
+    <div class="box green" style="left:520px;top:55px;width:520px;height:175px">
+      <h3>Estado del registro</h3>
+      <div class="chips">
+        <div class="chip"><div class="dot" style="border-color:#d99a2b;background:#fff4e0">⏳</div>Pendiente</div>
+        <div class="chip"><div class="dot" style="border-color:#8a6cb3;background:#f1ebf7">🔍</div>En revisión</div>
+        <div class="chip"><div class="dot" style="border-color:#3f9a5c;background:#e4f4e8">✅</div>Validado</div>
+        <div class="chip"><div class="dot" style="border-color:#c4554d;background:#fbe9e7">✖️</div>Rechazado /<br>Duplicado</div>
+      </div>
+    </div>
+    <div class="box blue" style="left:1150px;top:30px;width:410px;height:215px">
+      <h3>Panel administrativo · React + Vite</h3>
+      <div class="body"><div class="ic">🖥️</div>
+        <div>Revisión humana de evidencias<br>Decisión y trazabilidad<br>Lugares reportados (mapa)<br><span class="note">Alojado en la EC2, ruta /admin/</span></div></div>
+    </div>
+
+    <!-- Servicios: EC2 -->
+    <div class="ec2"></div><div class="ec2tag">AWS EC2 · Ubuntu (un solo servidor)</div>
+    <div class="box orange" style="left:100px;top:345px;width:310px;height:115px">
+      <h3>Nginx · proxy inverso <span class="port">:80</span></h3>
+      <div class="body" style="padding:8px 14px"><div class="ic" style="width:44px;height:44px;font-size:22px">🌐</div>
+        <div>HTTP · enruta <b>/api/v1</b> al backend<br>Sirve el panel en <b>/admin/</b></div></div>
+    </div>
+    <div class="box purple" style="left:100px;top:505px;width:310px;height:250px">
+      <h3>API REST · FastAPI <span class="port">:8001</span></h3>
+      <div class="body"><div class="ic">⚙️</div>
+        <div>Valida JWT de Supabase<br>Lógica de negocio<br>Orquesta el análisis<br>Genera URL firmada (R2)<br>Perfil y consentimiento</div></div>
+    </div>
+    <div class="box purple" style="left:490px;top:345px;width:390px;height:200px">
+      <h3>Motor de IA visual · <span class="port">:8000</span> + Ollama <span class="port">:11434</span></h3>
+      <div class="body" style="display:block;padding:6px 14px">
+        <div class="row"><div class="mini">🧠</div><div><b>Clasificador MobileNetV2</b> · 8 categorías</div></div>
+        <div class="row"><div class="mini">🧭</div><div><b>Embeddings</b> · similitud con ejemplos</div></div>
+        <div class="row"><div class="mini">💬</div><div><b>Gemma (Ollama)</b> · descripción y veto semántico</div></div>
+      </div>
+    </div>
+    <div class="box orange" style="left:490px;top:575px;width:390px;height:180px">
+      <h3>Contraste geoespacial</h3>
+      <div class="body"><div class="ic">🗺️</div>
+        <div>Inventario MINCETUR · PostGIS<br>Presencia GPS (últimas 24 h)<br>Elevación (DEM) y Sentinel-2<br>Detección de duplicados</div></div>
+    </div>
+    <div class="box purple" style="left:960px;top:440px;width:255px;height:215px">
+      <h3>Motor de reglas</h3>
+      <div class="body" style="flex-direction:column;text-align:center;gap:6px"><div class="ic">⚖️</div>
+        <div>Combina las señales<br>Aplica umbrales<br>Resultado preliminar<br><span class="note">La decisión final es humana</span></div></div>
+    </div>
+
+    <!-- Externos -->
+    <div class="ext"></div><div class="exttag">Servicios externos</div>
+    <div class="box grey" style="left:1285px;top:350px;width:255px;height:160px">
+      <h3>Google Maps Platform</h3>
+      <div class="body"><div class="ic">📍</div><div>Mapas en la app<br>Lugares y rutas (API)</div></div>
+    </div>
+    <div class="box grey" style="left:1285px;top:560px;width:255px;height:160px">
+      <h3>Copernicus</h3>
+      <div class="body"><div class="ic">🛰️</div><div>Imágenes Sentinel-2<br>Corroboración satelital</div></div>
+    </div>
+
+    <!-- Datos -->
+    <div class="box green" style="left:200px;top:850px;width:440px;height:170px">
+      <h3>Supabase</h3>
+      <div class="body"><div class="ic">🗄️</div>
+        <div>Autenticación (app y panel)<br>PostgreSQL / PostGIS con RLS<br>Evidencias, estados e historial<br>Perfiles y consentimiento</div></div>
+    </div>
+    <div class="box orange" style="left:990px;top:850px;width:440px;height:170px">
+      <h3>Cloudflare R2</h3>
+      <div class="body"><div class="ic">☁️</div>
+        <div>Fotografías y evidencias<br>Almacenamiento privado<br>Acceso mediante URL firmada</div></div>
+    </div>
+
+    <svg width="1600" height="1070">
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#33413e"/></marker>
+      </defs>
+      <g fill="none" stroke="#33413e" stroke-width="1.8" marker-end="url(#a)">
+        <path d="M245,245 V345"/>
+        <path d="M1355,245 V284 H360 V345"/>
+        <path d="M255,460 V505"/>
+        <path d="M410,540 H450 V445 H490"/>
+        <path d="M410,665 H490"/>
+        <path d="M880,445 H920 V510 H960"/>
+        <path d="M880,665 H920 V595 H960"/>
+        <path d="M1088,655 V800 H560 V850"/>
+        <path d="M300,755 V850"/>
+        <path d="M880,735 H1412 V720"/>
+        <path d="M1150,140 H1040"/>
+        <path d="M520,140 H410"/>
+        <path d="M80,200 H58 V1045 H1210 V1020" stroke-dasharray="7 5"/>
+      </g>
+      <text class="lbl" x="102" y="282">HTTP/JSON + JWT</text>
+      <text class="lbl" x="700" y="279">HTTP · panel en /admin/ y llamadas a la API</text>
+      <text class="lbl" x="263" y="488">/api/v1</text>
+      <text class="lbl" x="418" y="532">Foto</text>
+      <text class="lbl" x="418" y="657">GPS</text>
+      <text class="lbl" x="886" y="436">3 señales</text>
+      <text class="lbl" x="884" y="655">Contraste</text>
+      <text class="lbl" x="700" y="795">Resultado preliminar + historial</text>
+      <text class="lbl" x="308" y="815">Datos (service_role)</text>
+      <text class="lbl" x="1050" y="730">Sentinel-2 / DEM</text>
+      <text class="lbl" x="1062" y="132">Decisión</text>
+      <text class="lbl" x="424" y="132">Estado</text>
+      <text class="lbl" x="560" y="1040">Subida directa de la foto con URL firmada (no pasa por la API)</text>
+    </svg>
+  </div>
+</div>
+</body>
+</html>

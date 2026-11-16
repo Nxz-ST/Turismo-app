@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../features/legal/widgets/profile_gate.dart';
 import '../core/theme/app_theme.dart';
 import '../core/services/app_accessibility_service.dart';
 import '../core/widgets/pending_profile_prompt.dart';
@@ -50,7 +51,9 @@ class RutaAmigaApp extends StatelessWidget {
               (Supabase.instance.client.auth.currentSession == null
                   ? const WelcomeScreen()
                   : const PresenceLifecycle(
-                      child: PendingProfilePrompt(child: HomeScreen()),
+                      child: ProfileGate(
+                        child: PendingProfilePrompt(child: HomeScreen()),
+                      ),
                     )),
         );
       },

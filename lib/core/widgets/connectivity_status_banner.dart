@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import '../config/app_environment.dart';
 
 /// Estado global de red. Solo ocupa espacio cuando hay algo que comunicar.
 class ConnectivityStatusBanner extends StatefulWidget {
@@ -19,6 +22,8 @@ class _ConnectivityStatusBannerState extends State<ConnectivityStatusBanner> {
   bool _offline = false;
   bool _showRestored = false;
   Timer? _restoredTimer;
+  Timer? _retryTimer;
+  List<ConnectivityResult> _lastResults = const [];
 
   @override
   void initState() {
@@ -27,11 +32,36 @@ class _ConnectivityStatusBannerState extends State<ConnectivityStatusBanner> {
     _subscription = Connectivity().onConnectivityChanged.listen(_update);
   }
 
-  void _update(List<ConnectivityResult> results) {
-    final offline =
+  Future<bool> _serverReachable() async {
+    try {
+      final base = AppEnvironment.apiBaseUrl.replaceAll(RegExp(r'/+$'), '');
+      final response = await http
+          .get(Uri.parse('$base/health'))
+          .timeout(const Duration(seconds: 6));
+      return response.statusCode >= 200 && response.statusCode < 500;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _update(List<ConnectivityResult> results) async {
+    _lastResults = results;
+    var offline =
         results.isEmpty ||
         results.every((item) => item == ConnectivityResult.none);
-    if (!mounted || offline == _offline) return;
+    // El plugin a veces informa "sin red" aunque sí la haya (p. ej. en el
+    // simulador de iOS); el servidor tiene la última palabra.
+    if (offline) offline = !await _serverReachable();
+    if (!mounted) return;
+    // Mientras se muestre "Sin conexión", se vuelve a comprobar cada 10 s.
+    _retryTimer?.cancel();
+    if (offline) {
+      _retryTimer = Timer(
+        const Duration(seconds: 10),
+        () => _update(_lastResults),
+      );
+    }
+    if (offline == _offline) return;
     final wasOffline = _offline;
     setState(() {
       _offline = offline;
@@ -49,6 +79,7 @@ class _ConnectivityStatusBannerState extends State<ConnectivityStatusBanner> {
   void dispose() {
     _subscription?.cancel();
     _restoredTimer?.cancel();
+    _retryTimer?.cancel();
     super.dispose();
   }
 

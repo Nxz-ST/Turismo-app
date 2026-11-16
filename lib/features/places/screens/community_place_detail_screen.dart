@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/app_network_image.dart';
 import '../../../core/utils/display_text.dart';
+import '../../benefits/widgets/place_benefits_card.dart';
 import '../models/existing_place_target.dart';
 import '../models/tourist_place_model.dart';
 import '../models/place_trust_model.dart';
@@ -135,6 +136,13 @@ class _CommunityPlaceDetailScreenState
               sliver: SliverList.list(
                 children: [
                   _communityStory(place),
+                  const SizedBox(height: 18),
+                  PlaceBenefitsCard(
+                    placeKey: 'community_$_placeId',
+                    placeName: _displayName(place),
+                    category: _category(place),
+                    locationLabel: _benefitLocationLabel(place),
+                  ),
                   const SizedBox(height: 26),
                   Text(
                     'Lo esencial para tu visita',
@@ -827,6 +835,15 @@ class _CommunityPlaceDetailScreenState
       place['categoria_ia']?.toString(),
       fallback: 'Lugar natural',
     );
+  }
+
+  String _benefitLocationLabel(Map<String, dynamic> place) {
+    final values = [
+      place['distrito']?.toString().trim(),
+      place['provincia']?.toString().trim(),
+      place['departamento']?.toString().trim(),
+    ].whereType<String>().where((value) => value.isNotEmpty).toSet().toList();
+    return values.isEmpty ? 'Destino comunitario RutaAmiga' : values.join(', ');
   }
 
   String _description(Map<String, dynamic> place) {
