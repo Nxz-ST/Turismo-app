@@ -69,7 +69,7 @@ class _ConsentCheckboxesState extends State<ConsentCheckboxes> {
               ),
               const TextSpan(
                 text:
-                    '. Mis fotos y su ubicación se usarán para validar lugares y, si se aprueban, se publicarán como “Comunidad RutaAmiga”, sin mi nombre.',
+                    '. Mis fotos y su ubicación se usarán para validar lugares y, si se aprueban, se publicarán como “Comunidad RutaAmiga”, sin mi nombre, incluso si aparezco en ellas.',
               ),
             ],
           ),

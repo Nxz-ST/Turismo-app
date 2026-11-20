@@ -45,6 +45,9 @@ class _ProfileGateState extends State<ProfileGate> {
     if (userId == null) return _set(_Stage.ready);
     final preferences = await SharedPreferences.getInstance();
     if (preferences.getString(_cacheKey) == LegalInfo.termsVersion) {
+      // Consulta en segundo plano: si la cuenta está bloqueada, el cliente
+      // HTTP lo avisa y la app muestra la pantalla de bloqueo.
+      _service.fetch().ignore();
       return _set(_Stage.ready);
     }
 

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/app_environment.dart';
+import '../services/account_suspension.dart';
 
 class BackendApiException implements Exception {
   final int? statusCode;
@@ -171,6 +172,16 @@ class BackendApiClient {
     }
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final detail = payload is Map ? payload['detail'] : null;
+      final suspension = response.statusCode == 403
+          ? AccountSuspensionInfo.fromDetail(detail)
+          : null;
+      if (suspension != null) {
+        AccountSuspension.report(suspension);
+        throw const BackendApiException(
+          'Tu cuenta está bloqueada por incumplir los Términos y condiciones.',
+          statusCode: 403,
+        );
+      }
       final message = switch (response.statusCode) {
         401 => 'Tu sesión expiró. Inicia sesión nuevamente.',
         403 => 'No tienes permiso para realizar esta acción.',

@@ -6,7 +6,7 @@
 class LegalInfo {
   const LegalInfo._();
 
-  static const termsVersion = '1.0';
+  static const termsVersion = '1.1';
   static const termsAsset = 'assets/legal/terminos.md';
   static const privacyAsset = 'assets/legal/privacidad.md';
 

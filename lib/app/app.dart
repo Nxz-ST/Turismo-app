@@ -5,14 +5,29 @@ import '../core/services/app_accessibility_service.dart';
 import '../core/widgets/pending_profile_prompt.dart';
 import '../core/widgets/presence_lifecycle.dart';
 import '../core/widgets/connectivity_status_banner.dart';
+import '../core/services/account_suspension.dart';
+import '../features/legal/screens/account_suspended_screen.dart';
 import '../features/auth/screens/welcome_screen.dart';
 import '../features/home/screens/home_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 class RutaAmigaApp extends StatelessWidget {
   const RutaAmigaApp({super.key, this.initialHome});
 
   final Widget? initialHome;
+
+  static Future<void> _signOutSuspended() async {
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch (_) {}
+    AccountSuspension.clear();
+    rootNavigatorKey.currentState?.pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+      (_) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +47,7 @@ class RutaAmigaApp extends StatelessWidget {
             : base;
         return MaterialApp(
           debugShowCheckedModeBanner: false,
+          navigatorKey: rootNavigatorKey,
           title: 'RutaAmiga',
           theme: theme,
           builder: (context, child) {
@@ -44,6 +60,30 @@ class RutaAmigaApp extends StatelessWidget {
                 child: result,
               );
             }
+            result = ValueListenableBuilder<AccountSuspensionInfo?>(
+              valueListenable: AccountSuspension.notifier,
+              child: result,
+              builder: (_, info, app) {
+                // La app sigue montada (oculta) para conservar su navegación;
+                // encima va un Navigator propio para poder abrir los Términos.
+                return Stack(
+                  children: [
+                    Offstage(offstage: info != null, child: app),
+                    if (info != null)
+                      HeroControllerScope.none(
+                        child: Navigator(
+                          onGenerateRoute: (_) => MaterialPageRoute(
+                            builder: (_) => AccountSuspendedScreen(
+                              info: info,
+                              onSignOut: _signOutSuspended,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            );
             return ConnectivityStatusBanner(child: result);
           },
           home:

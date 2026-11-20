@@ -16,7 +16,7 @@
 
 **Antes del primer aporte (una sola vez):**
 > Tu foto y su ubicación se analizan para confirmar el lugar. Un miembro del
-> equipo la revisa antes de publicarla. Evita fotografiar rostros de personas.
+> equipo la revisa antes de publicarla. Puedes aparecer tú; otras personas solo de fondo o con su permiso, y ningún menor en primer plano.
 
 **Textos de permisos (Info.plist), propuestos:**
 
